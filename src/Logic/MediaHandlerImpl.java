@@ -70,8 +70,11 @@ public class MediaHandlerImpl extends UnicastRemoteObject implements MediaHandle
                     information.getTitle(),
                     information.getUsername());
 
+            // Convert the bytes into a file and add it to the folder
             out = new BufferedOutputStream(new FileOutputStream(path));
             out.write(encodedFile);
+
+            // Add a new entry for this entity
             addDataFile(information);
         } finally {
             if (out != null) out.close();

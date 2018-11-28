@@ -12,15 +12,21 @@ import java.util.StringTokenizer;
 
 public class MediaClient {
 
-    private static int portNum = 7777;
+    private static String portNum;// = "7777";
+    private static String address;// = "127.0.0.1";
+
     private static boolean running = true;
     private static String mediaPath = "/home/rdc2/Escritorio/DC/A6/RMI_Client_Storage/";
+    private static String configPath = "/home/rdc2/Escritorio/DC/A6/RMI_Client_Storage/config.cfg";
 
     private static MediaHandler mediaHandler;
 
     public static void main(String args[]) throws IOException {
+
+        loadConfig(configPath);
+
         try {
-            String registryURL = "rmi://localhost:" + portNum + "/some";
+            String registryURL = "rmi://" + address + ":" + portNum + "/some";
             mediaHandler = (MediaHandler) Naming.lookup(registryURL);
         } catch (Exception e) {
             System.out.println("Exception in Client: " + e);
@@ -73,8 +79,6 @@ public class MediaClient {
 
         switch (command) {
             case "upload": {
-                // TODO Get the username
-
                 // Check if arguments are correct
                 if (tokenizer.countTokens() != 4) {
                     System.out.println("Invalid [upload] use: " + commandLine +
@@ -88,7 +92,7 @@ public class MediaClient {
                 DataFile.Topic topic = solveTopic(tokenizer.nextToken());
                 String description = tokenizer.nextToken();
                 String filePath = mediaPath + tokenizer.nextToken();
-
+                // TODO Get the username
                 String username = "DefaultUser";
 
                 // Convert file into bits and create an information package
@@ -188,7 +192,7 @@ public class MediaClient {
             case 201:
                 return "File uploaded successfully.";
             default:
-                return "Unknown error";
+                return "Unknown status code.";
         }
     }
 
@@ -216,5 +220,28 @@ public class MediaClient {
         }
 
         return topicValue;
+    }
+
+    /**
+     * Loads the configuration contained in the configuration file.
+     *
+     * @param path The path where the file is located.
+     * @throws IOException Throws this exception if the file cannot be readed.
+     */
+    private static void loadConfig(String path) throws IOException {
+        BufferedReader br = null;
+        try {
+            br = new BufferedReader(new FileReader(path));
+            address = br.readLine();
+            portNum = br.readLine();
+            String userName = br.readLine();
+            String userPass = br.readLine();
+        } catch (FileNotFoundException e) {
+            System.out.println("Error while trying to read config file:\n" + e);
+        } finally {
+            if (br != null) {
+                br.close();
+            }
+        }
     }
 }
