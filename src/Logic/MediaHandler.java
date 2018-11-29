@@ -2,6 +2,7 @@ package Logic;
 
 import Utilities.DataFile;
 
+import javax.xml.crypto.Data;
 import java.io.IOException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
@@ -31,11 +32,41 @@ public interface MediaHandler extends Remote {
      */
     byte[] download(String title) throws IOException;
 
+    /**
+     * Returns a list of titles which its file contains the text specified by
+     * the parameter.
+     * @param text The text to us as keyword.
+     * @return A list of titles.
+     * @throws RemoteException Throws this exception if there is any problem.
+     */
     List<String> getContents(String text) throws RemoteException;
 
+    /**
+     * Returns a list of titles which its topic is the one specified by the
+     * parameter.
+     * @param topic The Topic to us as keyword.
+     * @return A list of titles.
+     * @throws RemoteException Throws this exception if there is any problem.
+     */
     List<String> getContents(DataFile.Topic topic) throws RemoteException;
 
-    int subscribe(DataFile.Topic topic, String user) throws RemoteException;
+    /**
+     * Subscribes the user to an specific Topic. The user will be notified
+     * any time a new file with this Topic is uploaded.
+     * @param topic The Topic which the user subscribes.
+     * @param caller The object used for the callback.
+     * @param username The username of the User who subscribes.
+     * @return A value corresponding to a HTTP status.
+     * @throws RemoteException Throws this exception if there is any problem.
+     */
+    int subscribe(DataFile.Topic topic, MediaCallback caller, String username) throws RemoteException;
 
-    int unsubscribe(DataFile.Topic topic, String user) throws RemoteException;
+    /**
+     * Unsubscribes the user from an specific Topic.
+     * @param topic The Topic which the user unsubscribes.
+     * @param username The username of the User who subscribes.
+     * @return A value corresponding to a HTTP status.
+     * @throws RemoteException Throws this exception if there is any problem.
+     */
+    int unsubscribe(DataFile.Topic topic, String username) throws RemoteException;
 }

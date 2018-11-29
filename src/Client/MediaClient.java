@@ -1,6 +1,7 @@
 package Client;
 
 import Logic.MediaCallback;
+import Logic.MediaCallbackClient;
 import Logic.MediaHandler;
 import Logic.MediaPackage;
 import Utilities.DataFile;
@@ -23,7 +24,7 @@ public class MediaClient {
     private static String mediaPath = "/home/rdc2/Escritorio/DC/A6/RMI_Client_Storage/";
     private static String configPath = "/home/rdc2/Escritorio/DC/A6/RMI_Client_Storage/config.cfg";
 
-    private static MediaCallback callback;
+    private static MediaCallback callback = new MediaCallbackClient();
 
     private static MediaHandler mediaHandler;
 

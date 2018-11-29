@@ -14,13 +14,17 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import javax.jws.soap.SOAPBinding;
 
-public class MediaHandlerImpl extends UnicastRemoteObject implements MediaHandler, MediaUtilities {
+/**
+ * This class is meant to be the object that the server launcher will register for the use
+ * of the clients. This class acts as the server itself, which manages all the logic.
+ */
+public class MediaHandlerServer extends UnicastRemoteObject implements MediaHandler, MediaUtilities {
 
     public static final String mediaPath = "/home/rdc2/Escritorio/DC/A6/RMI_Server_Storage/";
 
     private List<DataFile> files = new ArrayList<>();
 
-    public MediaHandlerImpl() throws RemoteException {
+    public MediaHandlerServer() throws RemoteException {
         // TODO Create a method to extract everything from the database
         files.add(new DataFile(
                 "TestingDownload",
@@ -115,13 +119,21 @@ public class MediaHandlerImpl extends UnicastRemoteObject implements MediaHandle
     List<User> subsAction = new ArrayList<>();
 
     @Override
-    public int subscribe(DataFile.Topic topic, String user)
+    public int subscribe(DataFile.Topic topic, MediaCallback caller, String username) throws RemoteException
+    {
+        System.out.println("User: " + username);
+        System.out.println(topic);
+        caller.notifySubscriber("You feggit.");
+        return 100;
+    }
+
+    @Override
+    public int unsubscribe(DataFile.Topic topic, String username) throws RemoteException
     {
         throw new NotImplementedException();
     }
 
-    @Override
-    public int unsubscribe(DataFile.Topic topic, String user)
+    private void notifySubscribers(DataFile.Topic topic)
     {
         throw new NotImplementedException();
     }

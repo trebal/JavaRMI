@@ -26,7 +26,7 @@ public class MediaServerLauncher {
         }
 
         try {
-            MediaHandlerImpl exportedObj = new MediaHandlerImpl();
+            MediaHandlerServer exportedObj = new MediaHandlerServer();
             startRegistry(port);
 
             // Register the object under the name “some”

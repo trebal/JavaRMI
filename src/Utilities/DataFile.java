@@ -1,10 +1,6 @@
 package Utilities;
 
-import Logic.MediaHandlerImpl;
-import com.sun.deploy.util.StringUtils;
-
-import javax.swing.*;
-import javax.swing.text.Utilities;
+import Logic.MediaHandlerServer;
 
 public class DataFile {
 
@@ -41,7 +37,7 @@ public class DataFile {
         this.owner = owner;
 
         // Default values
-        this.path = MediaHandlerImpl.mediaPath;
+        this.path = MediaHandlerServer.mediaPath;
         type = Type.Text;
     }
 
