@@ -1,5 +1,6 @@
 package Client;
 
+import Logic.MediaCallback;
 import Logic.MediaHandler;
 import Logic.MediaPackage;
 import Utilities.DataFile;
@@ -10,14 +11,19 @@ import java.rmi.*;
 import java.util.List;
 import java.util.StringTokenizer;
 
+// TODO Convert statics into member
 public class MediaClient {
 
     private static String portNum;// = "7777";
     private static String address;// = "127.0.0.1";
 
+    private static String username = "DefaultUser";
+
     private static boolean running = true;
     private static String mediaPath = "/home/rdc2/Escritorio/DC/A6/RMI_Client_Storage/";
     private static String configPath = "/home/rdc2/Escritorio/DC/A6/RMI_Client_Storage/config.cfg";
+
+    private static MediaCallback callback;
 
     private static MediaHandler mediaHandler;
 
@@ -93,7 +99,6 @@ public class MediaClient {
                 String description = tokenizer.nextToken();
                 String filePath = mediaPath + tokenizer.nextToken();
                 // TODO Get the username
-                String username = "DefaultUser";
 
                 // Convert file into bits and create an information package
                 byte[] encodedFile = convertToByes(filePath);
@@ -105,8 +110,8 @@ public class MediaClient {
                 );
 
                 // Send it
-                int code = mediaHandler.upload(encodedFile, information);
-                System.out.println(statusCodeToString(code));
+                int statusCode = mediaHandler.upload(encodedFile, information);
+                System.out.println(statusCodeToString(statusCode));
                 break;
             }
 
@@ -162,6 +167,35 @@ public class MediaClient {
                 System.out.println("Invalid [get] use: " + commandLine);
                 break;
             }
+
+            case "subscribe": {
+                // Check if arguments are correct
+                if (tokenizer.countTokens() != 1) {
+                    System.out.println("Invalid [subscribe] use: " + commandLine +
+                            ".\nUse the following syntax: subscribe <topic>");
+                    return;
+                }
+
+                DataFile.Topic topic = solveTopic(tokenizer.nextToken());
+
+                int statusCode = mediaHandler.subscribe(topic, callback, username);
+                System.out.println(statusCodeToString(statusCode));
+                break;
+            }
+
+            case "unsubscribe":
+                // Check if arguments are correct
+                if (tokenizer.countTokens() != 1) {
+                    System.out.println("Invalid [unsubscribe] use: " + commandLine +
+                            ".\nUse the following syntax: unsubscribe <topic>");
+                    return;
+                }
+
+                DataFile.Topic topic = solveTopic(tokenizer.nextToken());
+
+                int statusCode = mediaHandler.unsubscribe(topic, username);
+                System.out.println(statusCodeToString(statusCode));
+                break;
 
             case "exit":
                 running = false;
