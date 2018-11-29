@@ -1,5 +1,7 @@
 package Logic;
 
+import Utilities.DataFile;
+
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -25,8 +27,10 @@ public class MediaServerLauncher {
             e.printStackTrace();
         }
 
+        SubscriptionHandler subscriptionHandler = new SubscriptionHandler();
+
         try {
-            MediaHandlerServer exportedObj = new MediaHandlerServer();
+            MediaHandlerServer exportedObj = new MediaHandlerServer(subscriptionHandler);
             startRegistry(port);
 
             // Register the object under the name “some”

@@ -8,11 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import Utilities.DataFile;
-import Utilities.User;
-import com.sun.deploy.util.StringUtils;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
-
-import javax.jws.soap.SOAPBinding;
 
 /**
  * This class is meant to be the object that the server launcher will register for the use
@@ -22,15 +18,20 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
 
     public static final String mediaPath = "/home/rdc2/Escritorio/DC/A6/RMI_Server_Storage/";
 
+    private SubscriptionHandler subscriptionHandler;
+
     private List<DataFile> files = new ArrayList<>();
 
-    public MediaHandlerServer() throws RemoteException {
+    public MediaHandlerServer(SubscriptionHandler subscriptionHandler)
+            throws RemoteException {
         // TODO Create a method to extract everything from the database
         files.add(new DataFile(
                 "TestingDownload",
                 DataFile.Topic.Undefined,
                 "This is a file just for testing downloading purposes.",
                 mediaPath + "testing#download"));
+
+        this.subscriptionHandler = subscriptionHandler;
     }
 
     // region Client/Server Utilities
@@ -116,15 +117,10 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
 
     // region Subscription
 
-    List<User> subsAction = new ArrayList<>();
-
     @Override
-    public int subscribe(DataFile.Topic topic, MediaCallback caller, String username) throws RemoteException
-    {
-        System.out.println("User: " + username);
-        System.out.println(topic);
-        caller.notifySubscriber("You feggit.");
-        return 100;
+    public int subscribe(DataFile.Topic topic, MediaCallback caller, String username) throws RemoteException {
+        return subscriptionHandler.addSubscriber(username, topic) ?
+                201 : 409;
     }
 
     @Override
