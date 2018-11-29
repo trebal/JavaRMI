@@ -9,13 +9,19 @@ import java.util.List;
  * A class to handle the subscription system.
  */
 public class SubscriptionHandler {
-    private List<String> subsAction = new ArrayList<>();
-    private List<String> subsUndefined = new ArrayList<>();
 
+    /**
+     * An eager initialization singleton to handle the subscription itself.
+     */
+    public static final SubscriptionHandler handler =
+            new SubscriptionHandler();
+
+    /**
+     * The list of subscribers. The list itself contains a sublist for each topic.
+     */
     private ArrayList<ArrayList<String>> subscribers;
 
-    // TODO Convert to singleton
-    public SubscriptionHandler() {
+    private SubscriptionHandler() {
         subscribers = new ArrayList<ArrayList<String>>();
 
         for (DataFile.Topic topic : DataFile.Topic.values()) {
@@ -49,7 +55,7 @@ public class SubscriptionHandler {
      * @param topic The topic subscription.
      * @return A list of users subscribed to this topic.
      */
-    public ArrayList<String> getSubscriptionList(DataFile.Topic topic) {
+    private ArrayList<String> getSubscriptionList(DataFile.Topic topic) {
         System.out.println(topic.ordinal());
         return subscribers.get(topic.ordinal());
     }

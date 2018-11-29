@@ -27,10 +27,8 @@ public class MediaServerLauncher {
             e.printStackTrace();
         }
 
-        SubscriptionHandler subscriptionHandler = new SubscriptionHandler();
-
         try {
-            MediaHandlerServer exportedObj = new MediaHandlerServer(subscriptionHandler);
+            MediaHandlerServer exportedObj = new MediaHandlerServer();
             startRegistry(port);
 
             // Register the object under the name “some”

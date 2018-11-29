@@ -18,11 +18,9 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
 
     public static final String mediaPath = "/home/rdc2/Escritorio/DC/A6/RMI_Server_Storage/";
 
-    private SubscriptionHandler subscriptionHandler;
-
     private List<DataFile> files = new ArrayList<>();
 
-    public MediaHandlerServer(SubscriptionHandler subscriptionHandler)
+    public MediaHandlerServer()
             throws RemoteException {
         // TODO Create a method to extract everything from the database
         files.add(new DataFile(
@@ -30,8 +28,6 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
                 DataFile.Topic.Undefined,
                 "This is a file just for testing downloading purposes.",
                 mediaPath + "testing#download"));
-
-        this.subscriptionHandler = subscriptionHandler;
     }
 
     // region Client/Server Utilities
@@ -117,9 +113,18 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
 
     // region Subscription
 
+    /**
+     * Subscribes the user to an specific Topic. The user will be notified
+     * any time a new file with this Topic is uploaded.
+     * @param topic The Topic which the user subscribes.
+     * @param caller The object used for the callback.
+     * @param username The username of the User who subscribes.
+     * @return A value corresponding to a HTTP status.
+     * @throws RemoteException Throws this exception if there is any problem.
+     */
     @Override
     public int subscribe(DataFile.Topic topic, MediaCallback caller, String username) throws RemoteException {
-        return subscriptionHandler.addSubscriber(username, topic) ?
+        return SubscriptionHandler.handler.addSubscriber(username, topic) ?
                 201 : 409;
     }
 
