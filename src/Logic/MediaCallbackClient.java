@@ -2,13 +2,12 @@ package Logic;
 
 import java.io.Serializable;
 import java.rmi.RemoteException;
+import java.rmi.server.RemoteObject;
+import java.rmi.server.UnicastRemoteObject;
 
-public class MediaCallbackClient implements MediaCallback, Serializable{
+public class MediaCallbackClient extends UnicastRemoteObject implements MediaCallback, Serializable{
 
-    public MediaCallbackClient()
-    {
-
-    }
+    public MediaCallbackClient() throws RemoteException {}
 
     @Override
     public void notifySubscriber(String message) throws RemoteException {

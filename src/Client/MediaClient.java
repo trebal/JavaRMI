@@ -5,6 +5,7 @@ import Logic.MediaCallbackClient;
 import Logic.MediaHandler;
 import Logic.MediaPackage;
 import Utilities.DataFile;
+import Utilities.MediaUtilities;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -12,46 +13,41 @@ import java.rmi.*;
 import java.util.List;
 import java.util.StringTokenizer;
 
-// TODO Convert statics into member
 public class MediaClient {
 
     private static String portNum;// = "7777";
     private static String address;// = "127.0.0.1";
-
-    private static String username = "DefaultUser";
+    private static String username;// = "DefaultUser";
 
     private static boolean running = true;
     private static String mediaPath = "/home/rdc2/Escritorio/DC/A6/RMI_Client_Storage/";
     private static String configPath = "/home/rdc2/Escritorio/DC/A6/RMI_Client_Storage/config.cfg";
 
-    private static MediaCallback callback = new MediaCallbackClient();
-
+    private static MediaCallbackClient mediaCallback;
     private static MediaHandler mediaHandler;
 
     public static void main(String args[]) throws IOException {
 
+        // Load client configuration
         loadConfig(configPath);
 
+        // Get the remote handler and create the callback object
         try {
             String registryURL = "rmi://" + address + ":" + portNum + "/some";
             mediaHandler = (MediaHandler) Naming.lookup(registryURL);
+            mediaCallback = new MediaCallbackClient();
         } catch (Exception e) {
             System.out.println("Exception in Client: " + e);
+            throw new RemoteException();
         }
-        /*
-        JFrame frame = new JFrame("RMI Client");
-        frame.setContentPane(new ClientUI().panelMain);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.pack();
-        frame.setVisible(true);
-        */
 
         // Create a buffered reader to read commands from the console
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 
-        while (running) {
-            System.out.println("Write a command.");
+        // TODO Do the login
 
+        System.out.println("Client ready.");
+        while (running) {
             // Read and handle the command
             try {
                 handleCommand(br.readLine());
@@ -60,19 +56,8 @@ public class MediaClient {
             }
         }
 
+        // Close buffer
         br.close();
-    }
-
-    /**
-     * Searches a file in the passed path and converts it into a byte array.
-     *
-     * @param path The path where the file is located.
-     * @return A byte array corresponding to the converted file.
-     * @throws IOException Throws an exception if the file reading fails.
-     */
-    private static byte[] convertToByes(String path) throws IOException {
-        File file = new File(path);
-        return Files.readAllBytes(file.toPath());
     }
 
     /**
@@ -80,7 +65,7 @@ public class MediaClient {
      *
      * @param commandLine The text line containing the command.
      */
-    private static void handleCommand(String commandLine) throws IOException {
+    public static void handleCommand(String commandLine) throws IOException {
         StringTokenizer tokenizer = new StringTokenizer(commandLine, " ");
         String command = tokenizer.nextToken();
 
@@ -102,7 +87,7 @@ public class MediaClient {
                 // TODO Get the username
 
                 // Convert file into bits and create an information package
-                byte[] encodedFile = convertToByes(filePath);
+                byte[] encodedFile = MediaUtilities.convertToByes(filePath);
                 MediaPackage information = new MediaPackage(
                         title,
                         topic,
@@ -179,7 +164,10 @@ public class MediaClient {
 
                 DataFile.Topic topic = solveTopic(tokenizer.nextToken());
 
-                int statusCode = mediaHandler.subscribe(topic, callback, username);
+                int statusCode = mediaHandler.subscribe(
+                        topic,
+                        mediaCallback,
+                        username);
                 System.out.println(statusCodeToString(statusCode));
                 break;
             }
@@ -280,3 +268,10 @@ public class MediaClient {
         }
     }
 }
+/*
+JFrame frame = new JFrame("RMI Client");
+frame.setContentPane(new ClientUI().panelMain);
+frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+frame.pack();
+frame.setVisible(true);
+*/

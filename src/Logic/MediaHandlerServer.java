@@ -1,20 +1,20 @@
 package Logic;
 
 import java.io.*;
-import java.nio.file.Files;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.List;
 
 import Utilities.DataFile;
+import Utilities.MediaUtilities;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**
  * This class is meant to be the object that the server launcher will register for the use
  * of the clients. This class acts as the server itself, which manages all the logic.
  */
-public class MediaHandlerServer extends UnicastRemoteObject implements MediaHandler, MediaUtilities {
+public class MediaHandlerServer extends UnicastRemoteObject implements MediaHandler {
 
     public static final String mediaPath = "/home/rdc2/Escritorio/DC/A6/RMI_Server_Storage/";
 
@@ -29,26 +29,6 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
                 "This is a file just for testing downloading purposes.",
                 mediaPath + "testing#download"));
     }
-
-    // region Client/Server Utilities
-
-    @Override
-    public Boolean login(String username, String password) {
-        return null;
-    }
-
-    @Override
-    public String sayHello() throws RemoteException {
-        return "Hello";
-    }
-
-    @Override
-    public String ping() throws RemoteException {
-        System.out.println("Ping");
-        return "Server is up";
-    }
-
-    // endregion
 
     // region Main services
 
@@ -101,7 +81,7 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
 
         if(file !=null) {
             System.out.println("Client download file with title [" + title + "]");
-            return convertToByes(file.getPath());
+            return MediaUtilities.convertToByes(file.getPath());
         }
         else{
             System.out.println("Requested file not found.");
@@ -124,6 +104,7 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
      */
     @Override
     public int subscribe(DataFile.Topic topic, MediaCallback caller, String username) throws RemoteException {
+        caller.notifySubscriber("Hello");
         return SubscriptionHandler.handler.addSubscriber(username, topic) ?
                 201 : 409;
     }
@@ -183,17 +164,6 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
     // endregion
 
     // region Media handler tools
-
-    /**
-     * Converts a file located in the path into an array of Bytes.
-     * @param path The path where the file is located in the server.
-     * @return An array of bytes that encodes the file itself.
-     * @throws IOException Throws this exception.
-     */
-    private static byte[] convertToByes(String path) throws IOException {
-        File file = new File(path);
-        return Files.readAllBytes(file.toPath());
-    }
 
     /**
      * Creates an unique name for a file from the title and the user who creates it.
