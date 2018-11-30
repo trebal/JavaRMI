@@ -7,8 +7,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import Utilities.DataFile;
+import Utilities.DatagramObject;
 import Utilities.MediaUtilities;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+import Utilities.User;
 
 /**
  * This class is meant to be the object that the server launcher will register for the use
@@ -20,7 +21,9 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
 
     private List<DataFile> files = new ArrayList<>();
 
-    public MediaHandlerServer()
+    private static char fileSeparator = '#';
+
+    MediaHandlerServer()
             throws RemoteException {
         // TODO Create a method to extract everything from the database
         files.add(new DataFile(
@@ -35,7 +38,8 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
     /**
      * Uploads a file into the server. The file comes encoded into an array of bytes, and ii
      * is also provided a package that contains extra information from the sender.
-     * @param encodedFile The enconded file
+     *
+     * @param encodedFile The encoded file
      * @param information The information provided from the client, which contains the title
      *                    topic, description and the user itself.
      * @return An integer which tells the status code resulting from the operation.
@@ -43,6 +47,7 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
      */
     @Override
     public int upload(byte[] encodedFile, MediaPackage information) throws IOException {
+        // TODO Reject upload if the file conflicts
         System.out.println("Uploading file in the server");
         int statusCode;
         OutputStream out = null;
@@ -58,9 +63,14 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
             // Add a new entry for this entity
             addDataFile(information);
         } finally {
-            if (out != null) out.close();
+            if (out != null) {
+                out.close();
+            }
             // Status code: accepted
             statusCode = 201;
+
+            // Notify
+            notifySubscribers(information.getTopic(), information.getTitle());
         }
 
         return statusCode;
@@ -69,6 +79,7 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
     /**
      * Downloads a file from the server. The file is encoded in a byte array.
      * The file is obtained by a title. The array will be empty if the title cannot be found.
+     *
      * @param title The title of the file that is meant to be downloaded.
      * @return A byte array encoding the original file.
      * @throws IOException Throws this exception if the file cannot be downloaded.
@@ -79,11 +90,10 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
 
         DataFile file = getFileByTitle(title);
 
-        if(file !=null) {
+        if (file != null) {
             System.out.println("Client download file with title [" + title + "]");
             return MediaUtilities.convertToByes(file.getPath());
-        }
-        else{
+        } else {
             System.out.println("Requested file not found.");
             return null;
         }
@@ -96,28 +106,43 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
     /**
      * Subscribes the user to an specific Topic. The user will be notified
      * any time a new file with this Topic is uploaded.
-     * @param topic The Topic which the user subscribes.
-     * @param caller The object used for the callback.
+     *
+     * @param topic    The Topic which the user subscribes.
+     * @param caller   The object used for the callback.
      * @param username The username of the User who subscribes.
      * @return A value corresponding to a HTTP status.
      * @throws RemoteException Throws this exception if there is any problem.
      */
     @Override
     public int subscribe(DataFile.Topic topic, MediaCallback caller, String username) throws RemoteException {
-        caller.notifySubscriber("Hello");
+        // Add the client callback if it does not exist yet
+        if (!clientCallback.contains(caller)) {
+            clientCallback.add(caller);
+        }
         return SubscriptionHandler.handler.addSubscriber(username, topic) ?
                 201 : 409;
     }
 
     @Override
-    public int unsubscribe(DataFile.Topic topic, String username) throws RemoteException
-    {
-        throw new NotImplementedException();
+    public int unsubscribe(DataFile.Topic topic, String username) throws RemoteException {
+        // TODO Remove the callback if the client has not a single subscription
+        return SubscriptionHandler.handler.removeSubscriber(username, topic) ?
+                201 : 409;
     }
 
-    private void notifySubscribers(DataFile.Topic topic)
-    {
-        throw new NotImplementedException();
+    private List<MediaCallback> clientCallback = new ArrayList<>();
+
+    private void notifySubscribers(DataFile.Topic topic, String title) {
+        ArrayList<String> subsList = SubscriptionHandler.handler.getSubscriptionList(topic);
+
+        for (MediaCallback callback : clientCallback) {
+            try {
+                callback.notifySubscriber(
+                        "\t-New file of [" + topic + "] with title uploaded: " + title);
+            } catch (RemoteException e) {
+                System.out.println("Client could not be notified.");
+            }
+        }
     }
 
     // endregion
@@ -127,6 +152,7 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
     /**
      * Returns a list of titles that contain the text passed by parameter in the description
      * or in the title.
+     *
      * @param text The text for do the search.
      * @return A list of titles.
      */
@@ -145,12 +171,12 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
 
     /**
      * Returns a list of titles which the topic is the one specified in the parameter.
+     *
      * @param topic The topic for do the search.
      * @return A list of titles.
      */
     @Override
-    public List<String> getContents(DataFile.Topic topic) throws RemoteException
-    {
+    public List<String> getContents(DataFile.Topic topic) throws RemoteException {
         List<String> filteredFiles = new ArrayList<>();
         for (DataFile dataFile : files) {
             if (dataFile.getTopic() == topic) {
@@ -167,43 +193,41 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
 
     /**
      * Creates an unique name for a file from the title and the user who creates it.
-     * @param title The title of the file
+     *
+     * @param title    The title of the file
      * @param username The user name of the user who uploads the file.
      * @return A name generated by the hashes of the user name and the title.
      */
-    private String generateFileName(String title, String username)
-    {
-        return username + "_" + title;
+    private String generateFileName(String title, String username) {
+        return username + fileSeparator + title;
     }
 
     /**
      * Finds and returns a file which title is the one passed by parameter.
+     *
      * @param title The title of the file.
      * @return The DataFile corresponding to the title.
      */
-    private DataFile getFileByTitle(String title)
-    {
-        for(DataFile file : files)
-        {
-            if(file.getTitle().equals(title))
-            {
-                System.out.println("File with title[" + title +"] found.");
+    private DataFile getFileByTitle(String title) {
+        for (DataFile file : files) {
+            if (file.getTitle().equals(title)) {
+                System.out.println("File with title[" + title + "] found.");
                 return file;
             }
         }
-        System.out.println("File with title[" + title +"] not found.");
+        System.out.println("File with title[" + title + "] not found.");
         return null;
     }
 
     /**
      * Adds a new DataFile reference.
-     * @param title The title of the file.
-     * @param topic The topic of the file.
+     *
+     * @param title       The title of the file.
+     * @param topic       The topic of the file.
      * @param description The description of the file.
-     * @param username The username of the Utilities.User who uploads the file.
+     * @param username    The username of the Utilities.User who uploads the file.
      */
-    public void addDataFile(String title, DataFile.Topic topic, String description, String username)
-    {
+    public void addDataFile(String title, DataFile.Topic topic, String description, String username) {
         String filePath = mediaPath + username.hashCode();
         files.add(new DataFile(
                 title,
@@ -214,6 +238,7 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
 
     /**
      * Adds a new DataFile reference.
+     *
      * @param information A MediaPackage structure that stores all the information required
      *                    for a file transfer.
      */
@@ -227,24 +252,23 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
     }
 
     // TODO Fix and separate this method between the file delete and the reference
+
     /**
      * Removes a file reference.
-     * @param title
-     * @param user
-     * @return
+     *
+     * @param title The title of the file.
+     * @param user  The owner of the file.
+     * @return an integer
      */
-    public int removeDataFile(String title, String user)
-    {
-        for(DataFile dataFile : files)
-        {
-            if(dataFile.getTitle().equals(title))
-            {
+    public int removeDataFile(String title, String user) {
+        for (DataFile dataFile : files) {
+            if (dataFile.getTitle().equals(title)) {
                 // Check if the user is the owner and thus has permission
-                if(dataFile.getOwner().equals(user))
-                {
+                if (dataFile.getOwner().equals(user)) {
                     files.remove(dataFile);
-                }
-                else{
+                    // No content
+                    return 204;
+                } else {
                     // Operation unauthorized
                     return 401;
                 }
@@ -252,6 +276,46 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
         }
         // Not found
         return 403;
+    }
+
+    // endregion
+
+    // region Login
+
+    /**
+     * Tries to log in in the server. If the user and password are correct and
+     * registered, the server will return an HTTP success code and a value
+     * to keep the session, otherwise will only return an HTTP client error.
+     *
+     * @param user The user information containing the name and the password.
+     * @return An HTTP status code and a value if the login was successful.
+     * @throws RemoteException Throws this exception if there is any problem.
+     */
+    @Override
+    public DatagramObject login(User user) throws RemoteException {
+        User localUser = ServerLoginHandler.getUser(user.getUsername());
+
+        // User does not exist with such username
+        if (localUser == null) {
+            // Unprocessable entity
+            return new DatagramObject(422);
+        }
+
+        // User exists, password is correct
+        if (localUser.authenticate(user.getPassword())) {
+            // Add a registry for this new active user
+            int certificate = ServerLoginHandler.generateCertificate();
+            user.setDigitalCertificate(certificate);
+            ServerLoginHandler.addActiveUser(user);
+            // Accepted
+            return new DatagramObject(200,
+                    certificate);
+        }
+        // User exists, password is wrong
+        else {
+            // Unprocessable entity
+            return new DatagramObject(401);
+        }
     }
 
     // endregion

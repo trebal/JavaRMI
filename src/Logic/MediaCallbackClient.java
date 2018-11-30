@@ -11,6 +11,6 @@ public class MediaCallbackClient extends UnicastRemoteObject implements MediaCal
 
     @Override
     public void notifySubscriber(String message) throws RemoteException {
-        System.out.println("New notification from the server: " + message);
+        System.out.println("New notification from the server:\n" + message);
     }
 }

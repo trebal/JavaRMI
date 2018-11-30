@@ -50,12 +50,31 @@ public class SubscriptionHandler {
     }
 
     /**
+     * Removes a subscriber from the specified Topic.
+     *
+     * @param username The username of the subscriber.
+     * @param topic    The Topic where the user subscribes.
+     * @return Returns true if the subscriber could be removed because it was
+     * int the list, false otherwise.
+     */
+    public boolean removeSubscriber(String username, DataFile.Topic topic) {
+        List<String> subsList = getSubscriptionList(topic);
+
+        if (subsList.contains(username)) {
+            subsList.remove(username);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
      * Returns the list of users subscribed to this topic.
      *
      * @param topic The topic subscription.
      * @return A list of users subscribed to this topic.
      */
-    private ArrayList<String> getSubscriptionList(DataFile.Topic topic) {
+    public ArrayList<String> getSubscriptionList(DataFile.Topic topic) {
         System.out.println(topic.ordinal());
         return subscribers.get(topic.ordinal());
     }

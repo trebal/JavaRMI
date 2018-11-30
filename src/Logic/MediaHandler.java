@@ -1,6 +1,8 @@
 package Logic;
 
 import Utilities.DataFile;
+import Utilities.DatagramObject;
+import Utilities.User;
 
 import javax.xml.crypto.Data;
 import java.io.IOException;
@@ -69,4 +71,14 @@ public interface MediaHandler extends Remote {
      * @throws RemoteException Throws this exception if there is any problem.
      */
     int unsubscribe(DataFile.Topic topic, String username) throws RemoteException;
+
+    /**
+     * Tries to log in in the server. If the user and password are correct and
+     * registered, the server will return an HTTP success code and a value
+     * to keep the session, otherwise will only return an HTTP client error.
+     * @param user The user information containing the name and the password.
+     * @return An HTTP status code and a value if the login was successful.
+     * @throws RemoteException Throws this exception if there is any problem.
+     */
+    DatagramObject login(User user) throws RemoteException;
 }

@@ -1,14 +1,14 @@
 package Client;
 
-import Logic.MediaCallback;
 import Logic.MediaCallbackClient;
 import Logic.MediaHandler;
 import Logic.MediaPackage;
 import Utilities.DataFile;
+import Utilities.DatagramObject;
 import Utilities.MediaUtilities;
+import Utilities.User;
 
 import java.io.*;
-import java.nio.file.Files;
 import java.rmi.*;
 import java.util.List;
 import java.util.StringTokenizer;
@@ -17,7 +17,9 @@ public class MediaClient {
 
     private static String portNum;// = "7777";
     private static String address;// = "127.0.0.1";
-    private static String username;// = "DefaultUser";
+    private static String userName;// = "DefaultUser";
+    private static String userPass;// = "1234";
+    private static int certificate = 0;
 
     private static boolean running = true;
     private static String mediaPath = "/home/rdc2/Escritorio/DC/A6/RMI_Client_Storage/";
@@ -44,11 +46,33 @@ public class MediaClient {
         // Create a buffered reader to read commands from the console
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 
-        // TODO Do the login
+        // TODO Add a try limit
+        // Log in
+        while (true) {
+            try {
+                System.out.println("Type your user name:");
+                userName = br.readLine();
+                System.out.println("Type your password:");
+                userPass = br.readLine();
+                User user = new User(userName, userPass);
 
+                DatagramObject status = mediaHandler.login(user);
+
+                if (status.getStatusCode() == 200) {
+                    System.out.println("Login successful.");
+                    certificate = (int) status.getContent();
+                    break;
+                } else {
+                    System.out.println("Wrong username or password. Try again.");
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        // Read and handle the commands
         System.out.println("Client ready.");
         while (running) {
-            // Read and handle the command
             try {
                 handleCommand(br.readLine());
             } catch (IOException e) {
@@ -60,6 +84,8 @@ public class MediaClient {
         br.close();
     }
 
+    // TODO Command for file deletion
+    // TODO Command for file edit
     /**
      * Handles the command called by the user.
      *
@@ -92,7 +118,7 @@ public class MediaClient {
                         title,
                         topic,
                         description,
-                        username
+                        userName
                 );
 
                 // Send it
@@ -167,7 +193,7 @@ public class MediaClient {
                 int statusCode = mediaHandler.subscribe(
                         topic,
                         mediaCallback,
-                        username);
+                        userName);
                 System.out.println(statusCodeToString(statusCode));
                 break;
             }
@@ -182,7 +208,7 @@ public class MediaClient {
 
                 DataFile.Topic topic = solveTopic(tokenizer.nextToken());
 
-                int statusCode = mediaHandler.unsubscribe(topic, username);
+                int statusCode = mediaHandler.unsubscribe(topic, userName);
                 System.out.println(statusCodeToString(statusCode));
                 break;
 
@@ -257,8 +283,8 @@ public class MediaClient {
             br = new BufferedReader(new FileReader(path));
             address = br.readLine();
             portNum = br.readLine();
-            String userName = br.readLine();
-            String userPass = br.readLine();
+            userName = br.readLine();
+            userPass = br.readLine();
         } catch (FileNotFoundException e) {
             System.out.println("Error while trying to read config file:\n" + e);
         } finally {
@@ -268,6 +294,7 @@ public class MediaClient {
         }
     }
 }
+
 /*
 JFrame frame = new JFrame("RMI Client");
 frame.setContentPane(new ClientUI().panelMain);
