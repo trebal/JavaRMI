@@ -1,5 +1,6 @@
 package Client;
 
+import Logic.DatagramCertificate;
 import Logic.MediaCallbackClient;
 import Logic.MediaHandler;
 import Logic.MediaPackage;
@@ -7,6 +8,7 @@ import Utilities.DataFile;
 import Utilities.DatagramObject;
 import Utilities.MediaUtilities;
 import Utilities.User;
+import com.sun.org.apache.xerces.internal.xs.StringList;
 
 import java.io.*;
 import java.rmi.*;
@@ -19,11 +21,13 @@ public class MediaClient {
     private static String address;// = "127.0.0.1";
     private static String userName;// = "DefaultUser";
     private static String userPass;// = "1234";
-    private static int certificate = 0;
+    private static DatagramCertificate certificate = null;
 
     private static boolean running = true;
-    private static String mediaPath = "/home/rdc2/Escritorio/DC/A6/RMI_Client_Storage/";
-    private static String configPath = "/home/rdc2/Escritorio/DC/A6/RMI_Client_Storage/config.cfg";
+    private static final String mediaPath =
+            "/home/rdc2/Escritorio/DC/A6/RMI_Client_Storage/";
+    private static final String configPath =
+            "/home/rdc2/Escritorio/DC/A6/RMI_Client_Storage/config.cfg";
 
     private static MediaCallbackClient mediaCallback;
     private static MediaHandler mediaHandler;
@@ -60,7 +64,7 @@ public class MediaClient {
 
                 if (status.getStatusCode() == 200) {
                     System.out.println("Login successful.");
-                    certificate = (int) status.getContent();
+                    certificate = (DatagramCertificate) status.getContent();
                     break;
                 } else {
                     System.out.println("Wrong username or password. Try again.");
@@ -122,31 +126,37 @@ public class MediaClient {
                 );
 
                 // Send it
-                int statusCode = mediaHandler.upload(encodedFile, information);
-                System.out.println(statusCodeToString(statusCode));
+                DatagramObject statusCode = mediaHandler.upload(
+                        encodedFile,
+                        information,
+                        certificate);
+                System.out.println(statusCodeToString(statusCode.getStatusCode()));
                 break;
             }
 
             case "download": {
                 // Check if arguments are correct
-                if (tokenizer.countTokens() == 1) {
-                    byte[] byteFile = mediaHandler.download(tokenizer.nextToken());
-
-                    if (byteFile == null) {
-                        System.out.println("Empty");
-                        return;
-                    }
-
-                    OutputStream out = null;
-                    try {
-                        out = new BufferedOutputStream(new FileOutputStream(mediaPath + "pajas"));
-                        out.write(byteFile);
-                    } finally {
-                        if (out != null) out.close();
-                    }
-                } else {
+                if (tokenizer.countTokens() != 1) {
                     System.out.println("Invalid [download] use: " + commandLine);
                 }
+
+                String title = tokenizer.nextToken();
+                DatagramObject result = mediaHandler.download(title, certificate);
+
+                if (result.getStatusCode() == 404) {
+                    System.out.println("File not found in the server.");
+                    return;
+                }
+
+                OutputStream out = null;
+                // TODO Configure the name for the file
+                try {
+                    out = new BufferedOutputStream(new FileOutputStream(mediaPath + "pajas"));
+                    out.write((byte[]) result.getContent());
+                } finally {
+                    if (out != null) out.close();
+                }
+
                 break;
             }
 
@@ -156,9 +166,11 @@ public class MediaClient {
                     // By topic
                     if (mode.equals("topic")) {
                         DataFile.Topic topic = solveTopic(tokenizer.nextToken());
-                        List<String> queryResult = mediaHandler.getContents(topic);
+                        DatagramObject queryResult = mediaHandler.getContents(topic, certificate);
+
                         System.out.println("Search by topic result: ");
-                        for (String title : queryResult) {
+                        List<String> resultList = (List<String>)queryResult.getContent();
+                        for (String title : resultList) {
                             System.out.println("\t-" + title);
                         }
 
@@ -167,9 +179,11 @@ public class MediaClient {
                     // By description
                     else if (mode.equals("description")) {
                         String text = tokenizer.nextToken();
-                        List<String> queryResult = mediaHandler.getContents(text);
+                        DatagramObject queryResult = mediaHandler.getContents(text, certificate);
+
                         System.out.println("Search by description result: ");
-                        for (String title : queryResult) {
+                        List<String> resultList = (List<String>)queryResult.getContent();
+                        for (String title : resultList) {
                             System.out.println("\t-" + title);
                         }
 
@@ -190,11 +204,11 @@ public class MediaClient {
 
                 DataFile.Topic topic = solveTopic(tokenizer.nextToken());
 
-                int statusCode = mediaHandler.subscribe(
+                DatagramObject statusCode = mediaHandler.subscribe(
                         topic,
                         mediaCallback,
-                        userName);
-                System.out.println(statusCodeToString(statusCode));
+                        certificate);
+                System.out.println(statusCodeToString(statusCode.getStatusCode()));
                 break;
             }
 
@@ -208,8 +222,8 @@ public class MediaClient {
 
                 DataFile.Topic topic = solveTopic(tokenizer.nextToken());
 
-                int statusCode = mediaHandler.unsubscribe(topic, userName);
-                System.out.println(statusCodeToString(statusCode));
+                DatagramObject statusCode = mediaHandler.unsubscribe(topic, certificate);
+                System.out.println(statusCodeToString(statusCode.getStatusCode()));
                 break;
 
             case "exit":
@@ -239,7 +253,7 @@ public class MediaClient {
     private static String statusCodeToString(int statusCode) {
         switch (statusCode) {
             case 201:
-                return "File uploaded successfully.";
+                return "(201) Operation accepted.";
             default:
                 return "Unknown status code.";
         }

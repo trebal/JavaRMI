@@ -17,7 +17,8 @@ import Utilities.User;
  */
 public class MediaHandlerServer extends UnicastRemoteObject implements MediaHandler {
 
-    public static final String mediaPath = "/home/rdc2/Escritorio/DC/A6/RMI_Server_Storage/";
+    public static final String mediaPath =
+            "/home/rdc2/Escritorio/DC/A6/RMI_Server_Storage/";
 
     private List<DataFile> files = new ArrayList<>();
 
@@ -28,9 +29,11 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
         // TODO Create a method to extract everything from the database
         files.add(new DataFile(
                 "TestingDownload",
-                DataFile.Topic.Undefined,
+                DataFile.Topic.Action,
                 "This is a file just for testing downloading purposes.",
-                mediaPath + "testing#download"));
+                "Your mom",
+                mediaPath + "testing#download")
+        );
     }
 
     // region Main services
@@ -46,9 +49,18 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
      * @throws IOException Throws this exception if the file cannot be written.
      */
     @Override
-    public int upload(byte[] encodedFile, MediaPackage information) throws IOException {
+    public DatagramObject upload(byte[] encodedFile,
+                      MediaPackage information,
+                      DatagramCertificate certificate)
+            throws IOException {
         // TODO Reject upload if the file conflicts
-        System.out.println("Uploading file in the server");
+
+        // Validate user certificate
+        if(!ServerLoginHandler.validateCertificate(certificate))
+        {
+            return new DatagramObject(401);
+        }
+
         int statusCode;
         OutputStream out = null;
         try {
@@ -73,7 +85,7 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
             notifySubscribers(information.getTopic(), information.getTitle());
         }
 
-        return statusCode;
+        return new DatagramObject(statusCode);
     }
 
     /**
@@ -85,17 +97,24 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
      * @throws IOException Throws this exception if the file cannot be downloaded.
      */
     @Override
-    public byte[] download(String title) throws IOException {
-        System.out.println("File DOWNLOAD request.");
+    public DatagramObject download(String title,
+                           DatagramCertificate certificate)
+            throws IOException {
+
+        // Validate user certificate
+        if (!ServerLoginHandler.validateCertificate(certificate)) {
+            return new DatagramObject(401);
+        }
 
         DataFile file = getFileByTitle(title);
 
         if (file != null) {
             System.out.println("Client download file with title [" + title + "]");
-            return MediaUtilities.convertToByes(file.getPath());
+            return new DatagramObject(202,
+                    MediaUtilities.convertToByes(file.getPath()));
         } else {
             System.out.println("Requested file not found.");
-            return null;
+            return new DatagramObject(404);
         }
     }
 
@@ -109,25 +128,46 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
      *
      * @param topic    The Topic which the user subscribes.
      * @param caller   The object used for the callback.
-     * @param username The username of the User who subscribes.
      * @return A value corresponding to a HTTP status.
      * @throws RemoteException Throws this exception if there is any problem.
      */
     @Override
-    public int subscribe(DataFile.Topic topic, MediaCallback caller, String username) throws RemoteException {
+    public DatagramObject subscribe(
+            DataFile.Topic topic,
+            MediaCallback caller,
+            DatagramCertificate certificate)
+            throws RemoteException {
+
+        // Validate user certificate
+        if (!ServerLoginHandler.validateCertificate(certificate)) {
+            return new DatagramObject(401);
+        }
+
         // Add the client callback if it does not exist yet
         if (!clientCallback.contains(caller)) {
             clientCallback.add(caller);
         }
-        return SubscriptionHandler.handler.addSubscriber(username, topic) ?
-                201 : 409;
+        return SubscriptionHandler.handler.addSubscriber(certificate.getUserName(), topic) ?
+                new DatagramObject(201) :
+                new DatagramObject(409);
     }
 
     @Override
-    public int unsubscribe(DataFile.Topic topic, String username) throws RemoteException {
-        // TODO Remove the callback if the client has not a single subscription
-        return SubscriptionHandler.handler.removeSubscriber(username, topic) ?
-                201 : 409;
+    public DatagramObject unsubscribe(
+            DataFile.Topic topic,
+            DatagramCertificate certificate)
+            throws RemoteException {
+
+        // Validate user certificate
+        if (!ServerLoginHandler.validateCertificate(certificate)) {
+            return new DatagramObject(401);
+        }
+
+        // TODO Remove the callback if the client has not any subscription
+
+        return SubscriptionHandler.handler.removeSubscriber(
+                certificate.getUserName(), topic) ?
+                new DatagramObject(201) : new DatagramObject(409);
     }
 
     private List<MediaCallback> clientCallback = new ArrayList<>();
@@ -157,7 +197,17 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
      * @return A list of titles.
      */
     @Override
-    public List<String> getContents(String text) throws RemoteException {
+    public DatagramObject getContents(
+            String text,
+            DatagramCertificate certificate)
+            throws RemoteException {
+
+        // Validate user certificate
+        if (!ServerLoginHandler.validateCertificate(certificate)) {
+            return new DatagramObject(401);
+        }
+
+        // Create the filtered list
         List<String> filteredFiles = new ArrayList<>();
         for (DataFile dataFile : files) {
             if (dataFile.getTitle().contains(text) ||
@@ -166,7 +216,7 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
             }
         }
 
-        return filteredFiles;
+        return new DatagramObject(201, filteredFiles);
     }
 
     /**
@@ -176,7 +226,16 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
      * @return A list of titles.
      */
     @Override
-    public List<String> getContents(DataFile.Topic topic) throws RemoteException {
+    public DatagramObject getContents(
+            DataFile.Topic topic,
+            DatagramCertificate certificate)
+            throws RemoteException {
+
+        // Validate user certificate
+        if (!ServerLoginHandler.validateCertificate(certificate)) {
+            return new DatagramObject(401);
+        }
+
         List<String> filteredFiles = new ArrayList<>();
         for (DataFile dataFile : files) {
             if (dataFile.getTopic() == topic) {
@@ -184,7 +243,7 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
             }
         }
 
-        return filteredFiles;
+        return new DatagramObject(201, filteredFiles);
     }
 
     // endregion
@@ -293,7 +352,7 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
      */
     @Override
     public DatagramObject login(User user) throws RemoteException {
-        User localUser = ServerLoginHandler.getUser(user.getUsername());
+        User localUser = ServerLoginHandler.getUserFromDB(user.getUsername());
 
         // User does not exist with such username
         if (localUser == null) {
@@ -309,7 +368,10 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
             ServerLoginHandler.addActiveUser(user);
             // Accepted
             return new DatagramObject(200,
-                    certificate);
+                    new DatagramCertificate(
+                            user.getUsername(),
+                            certificate
+                    ));
         }
         // User exists, password is wrong
         else {

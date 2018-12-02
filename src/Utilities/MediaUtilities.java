@@ -16,6 +16,7 @@ public class MediaUtilities {
      * @throws IOException Throws this exception.
      */
     public static byte[] convertToByes(String path) throws IOException {
+        System.out.println(path);
         File file = new File(path);
         return Files.readAllBytes(file.toPath());
     }

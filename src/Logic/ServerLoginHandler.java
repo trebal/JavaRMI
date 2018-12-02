@@ -9,22 +9,56 @@ import java.util.Random;
 // TODO Do the login here
 public class ServerLoginHandler {
 
-    private static int certificateLength = 8;
+    private static final int certificateLength = 8;
     private static Random random = new Random();
 
     private static List<User> activeUsers = new ArrayList<>();
 
     // TODO Get the user from the database
-    public static User getUser(String userName) {
+
+    /**
+     * Extracts a user from the data base.
+     *
+     * @param userName The name of the User.
+     * @return A User object.
+     */
+    public static User getUserFromDB(String userName) {
         return new User("DefaultUser", "1234");
     }
 
+    /**
+     * Generates a digital certificate for a User.
+     *
+     * @return The generated certificate.
+     */
     public static int generateCertificate() {
         return (int) (random.nextInt() % Math.pow(10, certificateLength));
     }
 
-    public static void addActiveUser(User user)
-    {
+    /**
+     * Validates the certificate of the corresponding user.
+     *
+     * @param userName    The name of the User.
+     * @param certificate The digital certificate of the User.
+     * @return Returns true if the passed certificated corresponds to the
+     * current certificate assigned by the server, false otherwise.
+     */
+    public static boolean validateCertificate(DatagramCertificate certificate) {
+        for (User user : activeUsers) {
+            if (user.getUsername().equals(certificate.getUserName())
+                    && user.getDigitalCertificate() == certificate.getCertificate()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Adds a User to the active User list.
+     *
+     * @param user The User to add.
+     */
+    public static void addActiveUser(User user) {
         activeUsers.add(user);
     }
 }
