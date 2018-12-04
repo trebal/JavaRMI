@@ -13,7 +13,7 @@ public class DatagramCertificate implements Serializable{
         this.certificate = certificate;
     }
 
-    public String getUserName() {
+    public String getUsername() {
         return userName;
     }
 

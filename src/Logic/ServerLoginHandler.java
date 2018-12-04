@@ -45,7 +45,7 @@ public class ServerLoginHandler {
      */
     public static boolean validateCertificate(DatagramCertificate certificate) {
         for (User user : activeUsers) {
-            if (user.getUsername().equals(certificate.getUserName())
+            if (user.getUsername().equals(certificate.getUsername())
                     && user.getDigitalCertificate() == certificate.getCertificate()) {
                 return true;
             }

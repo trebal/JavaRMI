@@ -194,6 +194,57 @@ public class MediaClient {
                 break;
             }
 
+            case "edit": {
+                // Check if arguments are correct
+                if (tokenizer.countTokens() != 4) {
+                    System.out.println("Invalid [edit] use: " + commandLine +
+                            ". Use the following syntax: upload <title><topic><description>" +
+                            "<file name>");
+                    return;
+                }
+
+                // Get target file
+                String target = tokenizer.nextToken();
+
+                // Get file properties
+                String title = tokenizer.nextToken();
+                DataFile.Topic topic = solveTopic(tokenizer.nextToken());
+                String description = tokenizer.nextToken();
+
+                MediaPackage information = new MediaPackage(
+                        title,
+                        topic,
+                        description,
+                        certificate.getUsername()
+                );
+
+                // Send it
+                DatagramObject result = mediaHandler.edit(
+                        target,
+                        information,
+                        certificate);
+                System.out.println(statusCodeToString(result.getStatusCode()));
+
+                System.out.println(result.getStatusCode());
+
+                break;
+            }
+
+            case "delete": {
+                if (tokenizer.countTokens() != 1)
+                {
+                    System.out.println("Invalid [delete] use: " + commandLine);
+                    return;
+                }
+
+                String title = tokenizer.nextToken();
+                DatagramObject result = mediaHandler.delete(title, certificate);
+
+                System.out.println(result.getStatusCode());
+
+                break;
+            }
+
             case "subscribe": {
                 // Check if arguments are correct
                 if (tokenizer.countTokens() != 1) {

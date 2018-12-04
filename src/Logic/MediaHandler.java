@@ -7,7 +7,6 @@ import Utilities.User;
 import java.io.IOException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
-import java.util.List;
 
 public interface MediaHandler extends Remote {
 
@@ -17,7 +16,8 @@ public interface MediaHandler extends Remote {
      * operation: title, topic, description, etc.
      *
      * @param encodedFile A byte array encoding the original file.
-     * @param information A package which contains required extra information for the operation.
+     * @param information A package which contains required extra information for
+     *                    the operation.
      * @param certificate The user certificate to validate the operation.
      * @return A DatagramObject containing an HTTP status code.
      * @throws IOException Throws this exception if the file cannot be uploaded.
@@ -29,18 +29,46 @@ public interface MediaHandler extends Remote {
 
     /**
      * Downloads a file from the server. The file is encoded in a byte array.
-     * The file is obtained by a title. The array will be empty if the title cannot be found.
+     * The file is obtained by a title. The array will be empty if the title
+     * cannot be found.
      *
      * @param title       The title of the file that is meant to be downloaded.
      * @param certificate The user certificate to validate the operation.
      * @return A DatagramObject containing an HTTP status code and byte array encoding
-     * the original file.
+     * the file.
      * @throws IOException Throws this exception if the file cannot be downloaded.
      */
 
     DatagramObject download(String title,
                             DatagramCertificate certificate)
             throws IOException;
+
+    /**
+     * Edits the file with the target title with the information sent in the package.
+     *
+     * @param title       The title of the file to be edited.
+     * @param information A package which contains required extra information for
+     *                    the operation.
+     * @param certificate The user certificate to validate the operation.
+     * @return A DatagramObject containing an HTTP status code.
+     * @throws RemoteException Throws this exception if there is any connection problem.
+     */
+    DatagramObject edit(String title,
+                        MediaPackage information,
+                        DatagramCertificate certificate)
+            throws RemoteException;
+
+    /**
+     * Deletes the file with the target title.
+     *
+     * @param title       The title of the file to be deleted.
+     * @param certificate The user certificate to validate the operation.
+     * @return A DatagramObject containing an HTTP status code.
+     * @throws RemoteException Throws this exception if there is any connection problem.
+     */
+    DatagramObject delete(String title,
+                          DatagramCertificate certificate)
+            throws RemoteException;
 
     /**
      * Returns a list of titles which its file contains the text specified by

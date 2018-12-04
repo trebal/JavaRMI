@@ -1,21 +1,12 @@
 package Utilities;
 
-import Logic.MediaHandlerServer;
-
 public class DataFile {
 
     private final String title;
     private final Topic topic;
     private final String description;
-    private final Type type;
     private final String owner;
     private String path;
-
-    public enum Type {
-        Text,
-        Audio,
-        Video
-    }
 
     public enum Topic {
         Action,
@@ -38,8 +29,7 @@ public class DataFile {
         this.owner = owner;
 
         // Default values
-        this.path = MediaHandlerServer.mediaPath;
-        type = Type.Text;
+        this.path = "";
     }
 
     public DataFile(String title, Topic topic, String description, String owner,
@@ -52,7 +42,6 @@ public class DataFile {
 
         // Default values
         this.path = path;
-        type = Type.Text;
     }
 
     // endregion

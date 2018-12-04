@@ -31,7 +31,7 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
                 "TestingDownload",
                 DataFile.Topic.Action,
                 "This is a file just for testing downloading purposes.",
-                "Your mom",
+                "DefaultUser",
                 mediaPath + "testing#download")
         );
     }
@@ -45,19 +45,18 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
      * @param encodedFile The encoded file
      * @param information The information provided from the client, which contains the title
      *                    topic, description and the user itself.
-     * @return An integer which tells the status code resulting from the operation.
+     * @return A DatagramObject containing an HTTP status code.
      * @throws IOException Throws this exception if the file cannot be written.
      */
     @Override
     public DatagramObject upload(byte[] encodedFile,
-                      MediaPackage information,
-                      DatagramCertificate certificate)
+                                 MediaPackage information,
+                                 DatagramCertificate certificate)
             throws IOException {
         // TODO Reject upload if the file conflicts
 
         // Validate user certificate
-        if(!ServerLoginHandler.validateCertificate(certificate))
-        {
+        if (!ServerLoginHandler.validateCertificate(certificate)) {
             return new DatagramObject(401);
         }
 
@@ -66,14 +65,14 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
         try {
             String path = mediaPath + generateFileName(
                     information.getTitle(),
-                    information.getUsername());
+                    certificate.getUsername());
 
             // Convert the bytes into a file and add it to the folder
             out = new BufferedOutputStream(new FileOutputStream(path));
             out.write(encodedFile);
 
-            // Add a new entry for this entity
-            addDataFile(information);
+            // Add a new logical file
+            addDataFile(information, certificate.getUsername());
         } finally {
             if (out != null) {
                 out.close();
@@ -93,12 +92,13 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
      * The file is obtained by a title. The array will be empty if the title cannot be found.
      *
      * @param title The title of the file that is meant to be downloaded.
-     * @return A byte array encoding the original file.
+     * @return A DatagramObject containing an HTTP status code and byte array encoding
+     * the file.
      * @throws IOException Throws this exception if the file cannot be downloaded.
      */
     @Override
     public DatagramObject download(String title,
-                           DatagramCertificate certificate)
+                                   DatagramCertificate certificate)
             throws IOException {
 
         // Validate user certificate
@@ -118,6 +118,86 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
         }
     }
 
+    /**
+     * Edits the file with the target title with the information sent in the package.
+     *
+     * @param title       The title of the file to be edited.
+     * @param information A package which contains required extra information for
+     *                    the operation.
+     * @param certificate The user certificate to validate the operation.
+     * @return
+     * @throws RemoteException
+     */
+    @Override
+    public DatagramObject edit(String title,
+                               MediaPackage information,
+                               DatagramCertificate certificate)
+            throws RemoteException {
+
+        // Validate user certificate
+        if (!ServerLoginHandler.validateCertificate(certificate)) {
+            return new DatagramObject(401);
+        }
+
+        // Find the file
+        for (DataFile file : files) {
+            if (file.getTitle().equals(title)) {
+                // Check if the user is the owner and thus has permission
+                if (file.getOwner().equals(certificate.getUsername())) {
+                    // Overwrite logical file
+                    files.remove(file);
+                    addDataFile(information, certificate.getUsername());
+                    // TODO Change physical file name
+                    // Success, No content
+                    return new DatagramObject(204);
+                } else {
+                    // Operation unauthorized
+                    return new DatagramObject(401);
+                }
+            }
+        }
+        // Not found
+        return new DatagramObject(404);
+    }
+
+    /**
+     * Deletes the file with the target title.
+     *
+     * @param title       The title of the file to be deleted.
+     * @param certificate The user certificate to validate the operation.
+     * @return A DatagramObject containing an HTTP status code.
+     * @throws RemoteException Throws this exception if there is any connection problem.
+     */
+    @Override
+    public DatagramObject delete(String title,
+                                 DatagramCertificate certificate)
+            throws RemoteException {
+
+        // Validate user certificate
+        if (!ServerLoginHandler.validateCertificate(certificate)) {
+            return new DatagramObject(401);
+        }
+
+        // Find the file
+        for (DataFile file : files) {
+            if (file.getTitle().equals(title)) {
+                // Check if the user is the owner and thus has permission
+                if (file.getOwner().equals(certificate.getUsername())) {
+                    // Remove both logical and physical file
+                    files.remove(file);
+                    (new File(file.getPath())).delete();
+                    // Success, No content
+                    return new DatagramObject(204);
+                } else {
+                    // Operation unauthorized
+                    return new DatagramObject(401);
+                }
+            }
+        }
+        // Not found
+        return new DatagramObject(404);
+    }
+
     // endregion
 
     // region Subscription
@@ -126,8 +206,8 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
      * Subscribes the user to an specific Topic. The user will be notified
      * any time a new file with this Topic is uploaded.
      *
-     * @param topic    The Topic which the user subscribes.
-     * @param caller   The object used for the callback.
+     * @param topic  The Topic which the user subscribes.
+     * @param caller The object used for the callback.
      * @return A value corresponding to a HTTP status.
      * @throws RemoteException Throws this exception if there is any problem.
      */
@@ -147,7 +227,7 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
         if (!clientCallback.contains(caller)) {
             clientCallback.add(caller);
         }
-        return SubscriptionHandler.handler.addSubscriber(certificate.getUserName(), topic) ?
+        return SubscriptionHandler.handler.addSubscriber(certificate.getUsername(), topic) ?
                 new DatagramObject(201) :
                 new DatagramObject(409);
     }
@@ -166,7 +246,7 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
         // TODO Remove the callback if the client has not any subscription
 
         return SubscriptionHandler.handler.removeSubscriber(
-                certificate.getUserName(), topic) ?
+                certificate.getUsername(), topic) ?
                 new DatagramObject(201) : new DatagramObject(409);
     }
 
@@ -301,40 +381,13 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
      * @param information A MediaPackage structure that stores all the information required
      *                    for a file transfer.
      */
-    private void addDataFile(MediaPackage information) {
-        String filePath = mediaPath + information.getUsername().hashCode();
+    private void addDataFile(MediaPackage information, String owner) {
+        String filePath = mediaPath + owner;
         files.add(new DataFile(
                 information.getTitle(),
                 information.getTopic(),
                 information.getDescription(),
                 filePath));
-    }
-
-    // TODO Fix and separate this method between the file delete and the reference
-
-    /**
-     * Removes a file reference.
-     *
-     * @param title The title of the file.
-     * @param user  The owner of the file.
-     * @return an integer
-     */
-    public int removeDataFile(String title, String user) {
-        for (DataFile dataFile : files) {
-            if (dataFile.getTitle().equals(title)) {
-                // Check if the user is the owner and thus has permission
-                if (dataFile.getOwner().equals(user)) {
-                    files.remove(dataFile);
-                    // No content
-                    return 204;
-                } else {
-                    // Operation unauthorized
-                    return 401;
-                }
-            }
-        }
-        // Not found
-        return 403;
     }
 
     // endregion
