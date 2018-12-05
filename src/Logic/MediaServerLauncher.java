@@ -1,49 +1,77 @@
 package Logic;
 
-import Utilities.DataFile;
+import Utilities.DatagramObject;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.net.MalformedURLException;
+import java.io.*;
 import java.rmi.*;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.util.StringTokenizer;
 
 public class MediaServerLauncher {
 
     private static int port = 7777;
     private static String address = "127.0.0.1";
-
     private static String configPath =
             "/home/rdc2/Escritorio/DC/A6/RMI_Client_Storage/config.cfg";
 
-    public static void main(String args[]) throws MalformedURLException {
+    private static MediaHandlerServer exportedObj;
+    private static NetworkNode debugNode;
+
+    private static boolean running = true;
+
+    public static void main(String args[])
+            throws IOException, NotBoundException {
+
+        port = Integer.valueOf(args[0]);
+
+        // TODO Load from file
+        /*
         // Load configuration file
         try {
             loadConfig(configPath);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        */
 
+        // Create and export the object
         try {
-            MediaHandlerServer exportedObj = new MediaHandlerServer();
+            exportedObj = new MediaHandlerServer();
             startRegistry(port);
 
-            // Register the object under the name “some”
-            String registryURL = "rmi://" + address + ":" + port + "/some";
+            // Register the object
+            String registryURL = getRegistryURL(address,port);
             Naming.rebind(registryURL, exportedObj);
+
             System.out.println("Server ready.");
         }
         // The above call will throw an exception if the registry does not already exist
         catch (RemoteException e) {
             System.out.println("Exception catch." + e);
         }
+
+        // Create a buffered reader to read commands from the console
+        BufferedReader br = new BufferedReader(
+                new InputStreamReader(System.in));
+
+        // Read and handle the commands
+        while (running) {
+            try {
+                handleCommand(br.readLine());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        // Close buffer
+        br.close();
+        System.exit(0);
     }
 
     /**
-     * Start a RMI registry on the local host, if it does not already exists at the specified port number.
+     * Start a RMI registry on the local host, if it does not already
+     * exists at the specified port number.
      *
      * @param RMIPortNum The port of this RMI server.
      * @throws RemoteException throws this exception.
@@ -64,8 +92,9 @@ public class MediaServerLauncher {
 
     /**
      * Loads the configuration contained in the configuration file.
+     *
      * @param path The path where the file is located.
-     * @throws IOException Throws this exception if the file cannot be readed.
+     * @throws IOException Throws this exception if the file cannot be read.
      */
     private static void loadConfig(String path) throws IOException {
         BufferedReader br = null;
@@ -73,8 +102,6 @@ public class MediaServerLauncher {
             br = new BufferedReader(new FileReader(path));
             address = br.readLine();
             port = Integer.valueOf(br.readLine());
-            String userName = br.readLine();
-            String userPass = br.readLine();
         } catch (FileNotFoundException e) {
             System.out.println("Error while trying to read config file:\n" + e);
         } finally {
@@ -82,5 +109,52 @@ public class MediaServerLauncher {
                 br.close();
             }
         }
+    }
+
+    private static void handleCommand(String commandLine)
+            throws IOException, NotBoundException {
+
+        StringTokenizer tokenizer = new StringTokenizer(commandLine, " ");
+        String command = tokenizer.nextToken();
+
+        switch (command) {
+            case "connect":
+                System.out.println("Connecting");
+                String nodeAddress = tokenizer.nextToken();
+                int nodePort = Integer.valueOf(tokenizer.nextToken());
+
+                String registryURL = getRegistryURL(nodeAddress,nodePort);
+                NetworkNode node = (NetworkNode) Naming.lookup(registryURL);
+                debugNode = (NetworkNode) node.join(exportedObj).getContent();
+                System.out.println("Connected");
+                break;
+
+                // TODO Either finish or delete this method
+            case "ping":
+                System.out.println("Pinging...");
+                DatagramObject response = debugNode.ping();
+                System.out.println(response.getStatusCode()
+                + " " + response.getContent());
+
+            case "exit":
+                running = false;
+                break;
+
+            default:
+                System.out.println("Unrecognized command: " + commandLine);
+                break;
+        }
+    }
+
+    /**
+     * Generates the URL corresponding to the RMI server entity with the
+     * correct syntax.
+     *
+     * @param address The address of this server.
+     * @param port    The port of this server.
+     * @return The generated URL.
+     */
+    private static String getRegistryURL(String address, int port) {
+        return "rmi://" + address + ":" + port + "/media";
     }
 }

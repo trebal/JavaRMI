@@ -8,8 +8,8 @@ import Utilities.DataFile;
 import Utilities.DatagramObject;
 import Utilities.MediaUtilities;
 import Utilities.User;
-import com.sun.org.apache.xerces.internal.xs.StringList;
 
+import javax.swing.*;
 import java.io.*;
 import java.rmi.*;
 import java.util.List;
@@ -39,7 +39,7 @@ public class MediaClient {
 
         // Get the remote handler and create the callback object
         try {
-            String registryURL = "rmi://" + address + ":" + portNum + "/some";
+            String registryURL = "rmi://" + address + ":" + portNum + "/media";
             mediaHandler = (MediaHandler) Naming.lookup(registryURL);
             mediaCallback = new MediaCallbackClient();
         } catch (Exception e) {
@@ -96,6 +96,7 @@ public class MediaClient {
      * @param commandLine The text line containing the command.
      */
     public static void handleCommand(String commandLine) throws IOException {
+
         StringTokenizer tokenizer = new StringTokenizer(commandLine, " ");
         String command = tokenizer.nextToken();
 
@@ -108,7 +109,7 @@ public class MediaClient {
                             "<file name>");
                     return;
                 }
-
+                
                 // Get file properties
                 String title = tokenizer.nextToken();
                 DataFile.Topic topic = solveTopic(tokenizer.nextToken());

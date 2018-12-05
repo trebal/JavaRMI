@@ -15,10 +15,11 @@ import Utilities.User;
  * This class is meant to be the object that the server launcher will register for the use
  * of the clients. This class acts as the server itself, which manages all the logic.
  */
-public class MediaHandlerServer extends UnicastRemoteObject implements MediaHandler {
+public class MediaHandlerServer extends UnicastRemoteObject
+        implements MediaHandler, NetworkNode {
 
     public static final String mediaPath =
-            "/home/rdc2/Escritorio/DC/A6/RMI_Server_Storage/";
+            "/home/rdc2/Escritorio/DC/A6/Server/Storage/";
 
     private List<DataFile> files = new ArrayList<>();
 
@@ -35,6 +36,28 @@ public class MediaHandlerServer extends UnicastRemoteObject implements MediaHand
                 mediaPath + "testing#download")
         );
     }
+
+    // region Network Node
+
+    @Override
+    public DatagramObject join(NetworkNode node) throws RemoteException
+    {
+        System.out.println("New connection");
+        // TODO Add the node to the node list
+        NetworkNode newNode = node;
+
+        return new DatagramObject(202, this);
+    }
+
+    @Override
+    public DatagramObject ping() throws RemoteException
+    {
+        System.out.println("Received ping");
+
+        return new DatagramObject(200);
+    }
+
+    // endregion
 
     // region Main services
 
