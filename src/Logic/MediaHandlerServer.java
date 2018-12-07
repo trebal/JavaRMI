@@ -18,7 +18,7 @@ import Utilities.User;
 public class MediaHandlerServer extends UnicastRemoteObject
         implements MediaHandler, NetworkNode {
 
-    public static final String mediaPath =
+    public static final String MEDIA_PATH =
             "/home/rdc2/Escritorio/DC/A6/Server/Storage/";
 
     private List<DataFile> files = new ArrayList<>();
@@ -32,8 +32,24 @@ public class MediaHandlerServer extends UnicastRemoteObject
                 "TestingDownload",
                 DataFile.Topic.Action,
                 "This is a file just for testing downloading purposes.",
+                "Admin",
+                MEDIA_PATH + "Admin#Download")
+        );
+
+        files.add(new DataFile(
+                "TestingDownload2",
+                DataFile.Topic.Action,
+                "This is a file just for testing downloading purposes.",
+                "Admin",
+                MEDIA_PATH + "Admin#Title")
+        );
+
+        files.add(new DataFile(
+                "Deletable",
+                DataFile.Topic.Action,
+                "This is a file just for testing deleting purposes.",
                 "DefaultUser",
-                mediaPath + "testing#download")
+                MEDIA_PATH + "Admin#Deletable")
         );
     }
 
@@ -59,7 +75,7 @@ public class MediaHandlerServer extends UnicastRemoteObject
 
     // endregion
 
-    // region Main services
+    // region Media handler services
 
     /**
      * Uploads a file into the server. The file comes encoded into an array of bytes, and ii
@@ -76,35 +92,43 @@ public class MediaHandlerServer extends UnicastRemoteObject
                                  MediaPackage information,
                                  DatagramCertificate certificate)
             throws IOException {
-        // TODO Reject upload if the file conflicts
 
         // Validate user certificate
         if (!ServerLoginHandler.validateCertificate(certificate)) {
             return new DatagramObject(401);
         }
 
+        System.out.println(certificate.getUsername());
+
+        // Generate the path
+        String path = MEDIA_PATH + generateFileName(
+                information.getTitle(), certificate.getUsername());
+
         int statusCode;
         OutputStream out = null;
         try {
-            String path = mediaPath + generateFileName(
-                    information.getTitle(),
-                    certificate.getUsername());
-
             // Convert the bytes into a file and add it to the folder
             out = new BufferedOutputStream(new FileOutputStream(path));
             out.write(encodedFile);
 
             // Add a new logical file
             addDataFile(information, certificate.getUsername());
-        } finally {
+
+            // Accepted
+            statusCode = 201;
+
+            // Notify subscribers
+            notifySubscribers(information.getTopic(), information.getTitle());
+        }
+        catch (Exception e)
+        {
+            // Internal server error
+            return new DatagramObject(500);
+        }
+        finally {
             if (out != null) {
                 out.close();
             }
-            // Status code: accepted
-            statusCode = 201;
-
-            // Notify
-            notifySubscribers(information.getTopic(), information.getTitle());
         }
 
         return new DatagramObject(statusCode);
@@ -133,8 +157,10 @@ public class MediaHandlerServer extends UnicastRemoteObject
 
         if (file != null) {
             System.out.println("Client download file with title [" + title + "]");
+            byte[] content = MediaUtilities.convertToByes(file.getPath());
+            System.out.println("Retrieved successfully");
             return new DatagramObject(202,
-                    MediaUtilities.convertToByes(file.getPath()));
+                    content);
         } else {
             System.out.println("Requested file not found.");
             return new DatagramObject(404);
@@ -148,8 +174,8 @@ public class MediaHandlerServer extends UnicastRemoteObject
      * @param information A package which contains required extra information for
      *                    the operation.
      * @param certificate The user certificate to validate the operation.
-     * @return
-     * @throws RemoteException
+     * @return A DatagramObject containing an HTTP status code.
+     * @throws RemoteException Throws this exception if there is any connection problem.
      */
     @Override
     public DatagramObject edit(String title,
@@ -349,6 +375,60 @@ public class MediaHandlerServer extends UnicastRemoteObject
         return new DatagramObject(201, filteredFiles);
     }
 
+    /**
+     * Returns the DataFile corresponding to the physical file with the passed title
+     * and owner.
+     * @param title The title of the file.
+     * @param owner The owner of the file.
+     * @param certificate The user certificate to validate the operation.
+     * @return A DatagramObject containing an HTTP status code and a titles (if found).
+     * @throws RemoteException Throws this exception if there is any problem.
+     */
+    @Override
+    public DatagramObject getFile(String title,
+                                          String owner,
+                                          DatagramCertificate certificate)
+            throws RemoteException
+    {
+        for(DataFile file : files)
+        {
+            if(file.getTitle().equals(title) && file.getOwner().equals(owner))
+            {
+                return new DatagramObject(200, file);
+            }
+        }
+
+        return new DatagramObject(404);
+    }
+
+    /**
+     * Returns a DataFile list containing the information of a physical file with the
+     * passed title.
+     * @param title The title of the file.
+     * @param certificate The user certificate to validate the operation.
+     * @return A DatagramObject containing an HTTP status code and a list of titles.
+     * @throws RemoteException Throws this exception if there is any problem.
+     */
+    @Override
+    public DatagramObject getFilesByTitle(String title,
+                                          DatagramCertificate certificate)
+            throws RemoteException
+    {
+        ArrayList<DataFile> coincidences = new ArrayList<>();
+
+        for(DataFile file : files)
+        {
+            if(file.getTitle().equals(title))
+            {
+                coincidences.add(file);
+            }
+        }
+
+        return (!coincidences.isEmpty()) ?
+                new DatagramObject(200, coincidences) :
+                new DatagramObject(404);
+    }
+
     // endregion
 
     // region Media handler tools
@@ -390,7 +470,7 @@ public class MediaHandlerServer extends UnicastRemoteObject
      * @param username    The username of the Utilities.User who uploads the file.
      */
     public void addDataFile(String title, DataFile.Topic topic, String description, String username) {
-        String filePath = mediaPath + username.hashCode();
+        String filePath = MEDIA_PATH + username.hashCode();
         files.add(new DataFile(
                 title,
                 topic,
@@ -405,11 +485,12 @@ public class MediaHandlerServer extends UnicastRemoteObject
      *                    for a file transfer.
      */
     private void addDataFile(MediaPackage information, String owner) {
-        String filePath = mediaPath + owner;
+        String filePath = MEDIA_PATH + owner;
         files.add(new DataFile(
                 information.getTitle(),
                 information.getTopic(),
                 information.getDescription(),
+                owner,
                 filePath));
     }
 
@@ -419,15 +500,16 @@ public class MediaHandlerServer extends UnicastRemoteObject
 
     /**
      * Tries to log in in the server. If the user and password are correct and
-     * registered, the server will return an HTTP success code and a value
+     * registered, the server will return an HTTP success code and a certificate
      * to keep the session, otherwise will only return an HTTP client error.
      *
      * @param user The user information containing the name and the password.
-     * @return An HTTP status code and a value if the login was successful.
+     * @return An HTTP status code and a certificate if the login was successful.
      * @throws RemoteException Throws this exception if there is any problem.
      */
     @Override
     public DatagramObject login(User user) throws RemoteException {
+
         User localUser = ServerLoginHandler.getUserFromDB(user.getUsername());
 
         // User does not exist with such username
@@ -451,7 +533,7 @@ public class MediaHandlerServer extends UnicastRemoteObject
         }
         // User exists, password is wrong
         else {
-            // Unprocessable entity
+            // Unauthorized entity
             return new DatagramObject(401);
         }
     }

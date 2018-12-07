@@ -1,6 +1,8 @@
 package Utilities;
 
-public class DataFile {
+import java.io.Serializable;
+
+public class DataFile implements Serializable {
 
     private final String title;
     private final Topic topic;

@@ -96,6 +96,32 @@ public interface MediaHandler extends Remote {
             throws RemoteException;
 
     /**
+     * Returns the DataFile corresponding to the physical file with the passed title
+     * and owner.
+     * @param title The title of the file.
+     * @param owner The owner of the file.
+     * @param certificate The user certificate to validate the operation.
+     * @return A DatagramObject containing an HTTP status code and a titles (if found).
+     * @throws RemoteException Throws this exception if there is any problem.
+     */
+    DatagramObject getFile(String title,
+                                   String owner,
+                                   DatagramCertificate certificate)
+        throws RemoteException;
+
+    /**
+     * Returns a DataFile list containing the information of a physical file with the
+     * passed title.
+     * @param title The title of the file.
+     * @param certificate The user certificate to validate the operation.
+     * @return A DatagramObject containing an HTTP status code and a list of titles.
+     * @throws RemoteException Throws this exception if there is any problem.
+     */
+    DatagramObject getFilesByTitle(String title,
+                                   DatagramCertificate certificate)
+            throws RemoteException;
+
+    /**
      * Subscribes the user to an specific Topic. The user will be notified
      * any time a new file with this Topic is uploaded.
      *

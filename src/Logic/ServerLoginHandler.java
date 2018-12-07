@@ -23,6 +23,10 @@ public class ServerLoginHandler {
      * @return A User object.
      */
     public static User getUserFromDB(String userName) {
+        if(userName.equals("1"))
+        {
+           return new User("1","1");
+        }
         return new User("DefaultUser", "1234");
     }
 
@@ -38,7 +42,6 @@ public class ServerLoginHandler {
     /**
      * Validates the certificate of the corresponding user.
      *
-     * @param userName    The name of the User.
      * @param certificate The digital certificate of the User.
      * @return Returns true if the passed certificated corresponds to the
      * current certificate assigned by the server, false otherwise.

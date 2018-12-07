@@ -69,13 +69,14 @@ public class SubscriptionHandler {
     }
 
     /**
-     * Returns the list of users subscribed to this topic.
+     * Returns the list of users subscribed to this topic. The topic is converted from
+     * enum to an ordinal (integer), which will act as an index to return the corresponding
+     * sublist in the subscribers list.
      *
      * @param topic The topic subscription.
      * @return A list of users subscribed to this topic.
      */
     public ArrayList<String> getSubscriptionList(DataFile.Topic topic) {
-        System.out.println(topic.ordinal());
         return subscribers.get(topic.ordinal());
     }
 }

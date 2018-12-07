@@ -24,8 +24,8 @@ public class MediaClient {
     private static DatagramCertificate certificate = null;
 
     private static boolean running = true;
-    private static final String mediaPath =
-            "/home/rdc2/Escritorio/DC/A6/RMI_Client_Storage/";
+    private static final String DEFAULT_DIRECTORY =
+            "user.home";
     private static final String configPath =
             "/home/rdc2/Escritorio/DC/A6/RMI_Client_Storage/config.cfg";
 
@@ -50,7 +50,6 @@ public class MediaClient {
         // Create a buffered reader to read commands from the console
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 
-        // TODO Add a try limit
         // Log in
         while (true) {
             try {
@@ -88,14 +87,12 @@ public class MediaClient {
         br.close();
     }
 
-    // TODO Command for file deletion
-    // TODO Command for file edit
     /**
      * Handles the command called by the user.
      *
      * @param commandLine The text line containing the command.
      */
-    public static void handleCommand(String commandLine) throws IOException {
+    private static void handleCommand(String commandLine) throws IOException {
 
         StringTokenizer tokenizer = new StringTokenizer(commandLine, " ");
         String command = tokenizer.nextToken();
@@ -103,22 +100,70 @@ public class MediaClient {
         switch (command) {
             case "upload": {
                 // Check if arguments are correct
-                if (tokenizer.countTokens() != 4) {
+                // Args: Title, Topic, Description (3)
+                if (tokenizer.countTokens() != 3) {
                     System.out.println("Invalid [upload] use: " + commandLine +
-                            ". Use the following syntax: upload <title><topic><description>" +
-                            "<file name>");
+                            ". Use the following syntax: upload <title><topic><description>");
                     return;
                 }
-                
-                // Get file properties
+
+                String path;
+
+                // Open a file explorer in its default directory
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setCurrentDirectory(
+                        new File(System.getProperty(DEFAULT_DIRECTORY)));
+
+                // Return the selected absolute path
+                if (fileChooser.showOpenDialog(fileChooser) == JFileChooser.APPROVE_OPTION) {
+                    path = fileChooser.getSelectedFile().getAbsolutePath();
+                } else {
+                    System.out.println("Invalid/Null file selected.");
+                    break;
+                }
+
+                // Set the file properties
                 String title = tokenizer.nextToken();
                 DataFile.Topic topic = solveTopic(tokenizer.nextToken());
                 String description = tokenizer.nextToken();
-                String filePath = mediaPath + tokenizer.nextToken();
-                // TODO Get the username
+
+                // Check if the file exists in the server
+                DatagramObject result = mediaHandler.getFile(title,
+                        certificate.getUsername(),
+                        certificate);
+
+                if(result.getStatusCode()==200)
+                {
+                    System.out.println("You already have a file with that name in the" +
+                            " server. Do you want to overwrite it?");
+                    System.out.println("1. Yes");
+                    System.out.println("2. No");
+
+                    // Create a buffered reader to read commands from the console
+                    BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+                    int commandNum = 0;
+                    // Log in
+                    while (true) {
+                        try {
+                            commandNum = Integer.valueOf(br.readLine());
+                            if (commandNum == 1){
+                                break;
+                            }
+                            else if(commandNum == 2)
+                            {
+                                return;
+                            }
+                            else{
+                                System.out.println("Type 1 for overwrite, 2 for cancel.");
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
 
                 // Convert file into bits and create an information package
-                byte[] encodedFile = MediaUtilities.convertToByes(filePath);
+                byte[] encodedFile = MediaUtilities.convertToByes(path);
                 MediaPackage information = new MediaPackage(
                         title,
                         topic,
@@ -131,7 +176,9 @@ public class MediaClient {
                         encodedFile,
                         information,
                         certificate);
+
                 System.out.println(statusCodeToString(statusCode.getStatusCode()));
+
                 break;
             }
 
@@ -149,14 +196,31 @@ public class MediaClient {
                     return;
                 }
 
+                String path;
+
+                // Open a file explorer and set its default directory
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setCurrentDirectory(
+                        new File(System.getProperty("user.home")));
+
+                // Return the selected absolute path
+                if (fileChooser.showOpenDialog(fileChooser) == JFileChooser.APPROVE_OPTION) {
+                    path = fileChooser.getSelectedFile().getAbsolutePath();
+                } else {
+                    System.out.println("Invalid/Null file selected.");
+                    break;
+                }
+
+                // Write the file
                 OutputStream out = null;
-                // TODO Configure the name for the file
                 try {
-                    out = new BufferedOutputStream(new FileOutputStream(mediaPath + "pajas"));
+                    out = new BufferedOutputStream(new FileOutputStream(path));
                     out.write((byte[]) result.getContent());
                 } finally {
                     if (out != null) out.close();
                 }
+
+                System.out.println("File [" + title + "] downloaded successfully.");
 
                 break;
             }
@@ -170,7 +234,7 @@ public class MediaClient {
                         DatagramObject queryResult = mediaHandler.getContents(topic, certificate);
 
                         System.out.println("Search by topic result: ");
-                        List<String> resultList = (List<String>)queryResult.getContent();
+                        List<String> resultList = (List<String>) queryResult.getContent();
                         for (String title : resultList) {
                             System.out.println("\t-" + title);
                         }
@@ -183,7 +247,7 @@ public class MediaClient {
                         DatagramObject queryResult = mediaHandler.getContents(text, certificate);
 
                         System.out.println("Search by description result: ");
-                        List<String> resultList = (List<String>)queryResult.getContent();
+                        List<String> resultList = (List<String>) queryResult.getContent();
                         for (String title : resultList) {
                             System.out.println("\t-" + title);
                         }
@@ -232,8 +296,7 @@ public class MediaClient {
             }
 
             case "delete": {
-                if (tokenizer.countTokens() != 1)
-                {
+                if (tokenizer.countTokens() != 1) {
                     System.out.println("Invalid [delete] use: " + commandLine);
                     return;
                 }
@@ -283,11 +346,11 @@ public class MediaClient {
                 break;
 
             case "debug":
-                String test = "uPpeR_CAse";
-                test = test.toLowerCase();
-                test = test.substring(0, 1).toUpperCase() + test.substring(1, test.length());
+                DatagramObject result = mediaHandler.getFile("TestingDownload",
+                        "Admin",
+                        certificate);
 
-                System.out.println(test);
+                System.out.println(result.getStatusCode());
                 break;
 
             default:

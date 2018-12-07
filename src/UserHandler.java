@@ -1,9 +1,11 @@
 import Utilities.User;
 
+import java.util.List;
+
 /**
  * An "static" class that manages the login from the users.
  */
-public class UserLogin {
+public class UserHandler {
 
     /**
      * Tries to authenticate a user by first getting the Utilities.User from the database (if exists), and then, checking if
