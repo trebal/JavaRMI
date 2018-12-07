@@ -6,10 +6,8 @@ import Logic.MediaHandler;
 import Logic.MediaPackage;
 import Utilities.DataFile;
 import Utilities.DatagramObject;
-import Utilities.MediaUtilities;
 import Utilities.User;
 
-import javax.swing.*;
 import java.io.*;
 import java.rmi.*;
 import java.util.List;
@@ -99,129 +97,16 @@ public class MediaClient {
 
         switch (command) {
             case "upload": {
-                // Check if arguments are correct
-                // Args: Title, Topic, Description (3)
-                if (tokenizer.countTokens() != 3) {
-                    System.out.println("Invalid [upload] use: " + commandLine +
-                            ". Use the following syntax: upload <title><topic><description>");
-                    return;
-                }
-
-                String path;
-
-                // Open a file explorer in its default directory
-                JFileChooser fileChooser = new JFileChooser();
-                fileChooser.setCurrentDirectory(
-                        new File(System.getProperty(DEFAULT_DIRECTORY)));
-
-                // Return the selected absolute path
-                if (fileChooser.showOpenDialog(fileChooser) == JFileChooser.APPROVE_OPTION) {
-                    path = fileChooser.getSelectedFile().getAbsolutePath();
-                } else {
-                    System.out.println("Invalid/Null file selected.");
-                    break;
-                }
-
-                // Set the file properties
-                String title = tokenizer.nextToken();
-                DataFile.Topic topic = solveTopic(tokenizer.nextToken());
-                String description = tokenizer.nextToken();
-
-                // Check if the file exists in the server
-                DatagramObject result = mediaHandler.getFile(title,
-                        certificate.getUsername(),
+                MediaClientHandler.upload(
+                        mediaHandler,
                         certificate);
-
-                if(result.getStatusCode()==200)
-                {
-                    System.out.println("You already have a file with that name in the" +
-                            " server. Do you want to overwrite it?");
-                    System.out.println("1. Yes");
-                    System.out.println("2. No");
-
-                    // Create a buffered reader to read commands from the console
-                    BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-                    int commandNum = 0;
-                    // Log in
-                    while (true) {
-                        try {
-                            commandNum = Integer.valueOf(br.readLine());
-                            if (commandNum == 1){
-                                break;
-                            }
-                            else if(commandNum == 2)
-                            {
-                                return;
-                            }
-                            else{
-                                System.out.println("Type 1 for overwrite, 2 for cancel.");
-                            }
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-
-                // Convert file into bits and create an information package
-                byte[] encodedFile = MediaUtilities.convertToByes(path);
-                MediaPackage information = new MediaPackage(
-                        title,
-                        topic,
-                        description,
-                        userName
-                );
-
-                // Send it
-                DatagramObject statusCode = mediaHandler.upload(
-                        encodedFile,
-                        information,
-                        certificate);
-
-                System.out.println(statusCodeToString(statusCode.getStatusCode()));
-
                 break;
             }
 
             case "download": {
-                // Check if arguments are correct
-                if (tokenizer.countTokens() != 1) {
-                    System.out.println("Invalid [download] use: " + commandLine);
-                }
-
-                String title = tokenizer.nextToken();
-                DatagramObject result = mediaHandler.download(title, certificate);
-
-                if (result.getStatusCode() == 404) {
-                    System.out.println("File not found in the server.");
-                    return;
-                }
-
-                String path;
-
-                // Open a file explorer and set its default directory
-                JFileChooser fileChooser = new JFileChooser();
-                fileChooser.setCurrentDirectory(
-                        new File(System.getProperty("user.home")));
-
-                // Return the selected absolute path
-                if (fileChooser.showOpenDialog(fileChooser) == JFileChooser.APPROVE_OPTION) {
-                    path = fileChooser.getSelectedFile().getAbsolutePath();
-                } else {
-                    System.out.println("Invalid/Null file selected.");
-                    break;
-                }
-
-                // Write the file
-                OutputStream out = null;
-                try {
-                    out = new BufferedOutputStream(new FileOutputStream(path));
-                    out.write((byte[]) result.getContent());
-                } finally {
-                    if (out != null) out.close();
-                }
-
-                System.out.println("File [" + title + "] downloaded successfully.");
-
+                MediaClientHandler.download(
+                        mediaHandler,
+                        certificate);
                 break;
             }
 
@@ -381,7 +266,7 @@ public class MediaClient {
      * @param topic The String corresponding to the Topic name.
      * @return The Topic enum type corresponding to the String.
      */
-    private static DataFile.Topic solveTopic(String topic) {
+    public static DataFile.Topic solveTopic(String topic) {
         // Normalize the topic to match the enum syntax.
         topic = topic.toLowerCase();
         topic = topic.substring(0, 1).toUpperCase() + topic.substring(1, topic.length());

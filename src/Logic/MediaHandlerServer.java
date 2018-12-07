@@ -31,25 +31,25 @@ public class MediaHandlerServer extends UnicastRemoteObject
         files.add(new DataFile(
                 "TestingDownload",
                 DataFile.Topic.Action,
-                "This is a file just for testing downloading purposes.",
+                "This is a file just for testing downloading.",
                 "Admin",
-                MEDIA_PATH + "Admin#Download")
+                MEDIA_PATH + "Admin#TestingDownload")
         );
 
         files.add(new DataFile(
-                "TestingDownload2",
+                "TestingConflict",
                 DataFile.Topic.Action,
-                "This is a file just for testing downloading purposes.",
-                "Admin",
-                MEDIA_PATH + "Admin#Title")
+                "This is a file just for testing upload conflicts.",
+                "1",
+                MEDIA_PATH + "Admin#TestingConflict")
         );
 
         files.add(new DataFile(
-                "Deletable",
+                "TestingDelete",
                 DataFile.Topic.Action,
                 "This is a file just for testing deleting purposes.",
                 "DefaultUser",
-                MEDIA_PATH + "Admin#Deletable")
+                MEDIA_PATH + "Admin#TestingDelete")
         );
     }
 
