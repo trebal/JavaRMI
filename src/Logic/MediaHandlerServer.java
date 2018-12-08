@@ -37,6 +37,14 @@ public class MediaHandlerServer extends UnicastRemoteObject
         );
 
         files.add(new DataFile(
+                "TestingDownload",
+                DataFile.Topic.Action,
+                "This is a file just for testing downloading.",
+                "1",
+                MEDIA_PATH + "1#TestingDownload")
+        );
+
+        files.add(new DataFile(
                 "TestingConflict",
                 DataFile.Topic.Action,
                 "This is a file just for testing upload conflicts.",

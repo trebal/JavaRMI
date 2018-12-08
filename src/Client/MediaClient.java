@@ -125,70 +125,23 @@ public class MediaClient {
                         certificate);
                 break;
 
-            case "get": {
-                if (tokenizer.countTokens() == 2) {
-                    String mode = tokenizer.nextToken();
-                    // By topic
-                    if (mode.equals("topic")) {
-                        DataFile.Topic topic = solveTopic(tokenizer.nextToken());
-                        DatagramObject queryResult = mediaHandler.getContents(topic, certificate);
-
-                        System.out.println("Search by topic result: ");
-                        List<String> resultList = (List<String>) queryResult.getContent();
-                        for (String title : resultList) {
-                            System.out.println("\t-" + title);
-                        }
-
-                        return;
-                    }
-                    // By description
-                    else if (mode.equals("description")) {
-                        String text = tokenizer.nextToken();
-                        DatagramObject queryResult = mediaHandler.getContents(text, certificate);
-
-                        System.out.println("Search by description result: ");
-                        List<String> resultList = (List<String>) queryResult.getContent();
-                        for (String title : resultList) {
-                            System.out.println("\t-" + title);
-                        }
-
-                        return;
-                    }
-                }
-                System.out.println("Invalid [get] use: " + commandLine);
-                break;
-            }
-
-            case "subscribe": {
-                // Check if arguments are correct
-                if (tokenizer.countTokens() != 1) {
-                    System.out.println("Invalid [subscribe] use: " + commandLine +
-                            ".\nUse the following syntax: subscribe <topic>");
-                    return;
-                }
-
-                DataFile.Topic topic = solveTopic(tokenizer.nextToken());
-
-                DatagramObject statusCode = mediaHandler.subscribe(
-                        topic,
+            case "subscribe":
+                MediaClientHandler.subscribe(
+                        mediaHandler,
                         mediaCallback,
                         certificate);
-                System.out.println(statusCodeToString(statusCode.getStatusCode()));
                 break;
-            }
 
             case "unsubscribe":
-                // Check if arguments are correct
-                if (tokenizer.countTokens() != 1) {
-                    System.out.println("Invalid [unsubscribe] use: " + commandLine +
-                            ".\nUse the following syntax: unsubscribe <topic>");
-                    return;
-                }
+                MediaClientHandler.unsubscribe(
+                        mediaHandler,
+                        certificate);
+                break;
 
-                DataFile.Topic topic = solveTopic(tokenizer.nextToken());
-
-                DatagramObject statusCode = mediaHandler.unsubscribe(topic, certificate);
-                System.out.println(statusCodeToString(statusCode.getStatusCode()));
+            case "get":
+                MediaClientHandler.get(
+                        mediaHandler,
+                        certificate);
                 break;
 
             case "exit":
@@ -218,32 +171,6 @@ public class MediaClient {
             default:
                 return "Unknown status code.";
         }
-    }
-
-    /**
-     * Converts an String to a Topic. If the String matches the Topic, it will return the
-     * corresponding topic, otherwise it will return the default value: Undefined.
-     *
-     * @param topic The String corresponding to the Topic name.
-     * @return The Topic enum type corresponding to the String.
-     */
-    public static DataFile.Topic solveTopic(String topic) {
-        // Normalize the topic to match the enum syntax.
-        topic = topic.toLowerCase();
-        topic = topic.substring(0, 1).toUpperCase() + topic.substring(1, topic.length());
-
-        DataFile.Topic topicValue;
-
-        // Try to convert it to the corresponding enum topic, and if it is not possible,
-        // use the default value Undefined.
-        try {
-            topicValue = DataFile.Topic.valueOf(topic);
-        } catch (IllegalArgumentException e) {
-            System.out.println("Non recognized topic [" + topic + "]: using default [Undefined]");
-            topicValue = DataFile.Topic.Undefined;
-        }
-
-        return topicValue;
     }
 
     /**

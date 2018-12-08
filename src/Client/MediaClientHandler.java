@@ -1,6 +1,7 @@
 package Client;
 
 import Logic.DatagramCertificate;
+import Logic.MediaCallback;
 import Logic.MediaHandler;
 import Logic.MediaPackage;
 import Utilities.DataFile;
@@ -9,6 +10,8 @@ import Utilities.MediaUtilities;
 
 import javax.swing.*;
 import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
 
 // TODO Make this class a singleton, which implements an interface
 // TODO Pass all the methods to an interface, and implement it
@@ -39,7 +42,7 @@ public class MediaClientHandler {
         System.out.println("Type a title for the file.");
         String title = br.readLine();
         System.out.println("Type a topic for the file.");
-        DataFile.Topic topic = MediaClient.solveTopic(br.readLine());
+        DataFile.Topic topic = solveTopic(br.readLine());
         System.out.println("Type a description for the file.");
         String description = br.readLine();
 
@@ -197,7 +200,7 @@ public class MediaClientHandler {
         System.out.println("Type the new title for the file. Leave empty to not change it.");
         String title = br.readLine();
         System.out.println("Type a topic for the file. Leave empty to not change it.");
-        DataFile.Topic topic = MediaClient.solveTopic(br.readLine());
+        DataFile.Topic topic = solveTopic(br.readLine());
         System.out.println("Type a description for the file. Leave empty to not change it.");
         String description = br.readLine();
 
@@ -247,11 +250,9 @@ public class MediaClientHandler {
         } else if (result.getStatusCode() >= 200 && result.getStatusCode() < 300) {
             printStatusMessage(result,
                     "File with with title [" + targetTitle + "] deleted successfully.");
-        }
-        else if(result.getStatusCode() >= 500)
-        {
+        } else if (result.getStatusCode() >= 500) {
             printStatusMessage(result.getStatusCode(),
-                    "Internal server error: " +(String)result.getContent());
+                    "Internal server error: " + (String) result.getContent());
         }
     }
 
@@ -259,16 +260,173 @@ public class MediaClientHandler {
 
     // region Media Handler subscription
 
+    /**
+     * Handles the subscribe command, which subscribes the user to a topic.
+     *
+     * @param mediaHandler  The media handler instance of the server.
+     * @param mediaCallback The media callback instance used by the server.
+     * @param certificate   The user certificate to validate the operation.
+     * @throws IOException Throws this exception if any critical error happens.
+     */
     public static void subscribe(MediaHandler mediaHandler,
-                              DatagramCertificate certificate)
+                                 MediaCallback mediaCallback,
+                                 DatagramCertificate certificate)
             throws IOException {
 
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 
+        // Read and parse the topic
+        System.out.println("Type the topic you want to subscribe.");
+        DataFile.Topic topic = solveTopic(br.readLine());
 
-/*
-        printStatusMessage(statusCode,
-                "File [" + title + "] uploaded successfully.");*/
+        // Send
+        DatagramObject result = mediaHandler.subscribe(
+                topic,
+                mediaCallback,
+                certificate);
+
+        if (result.getStatusCode() == 201) {
+            printStatusMessage(result.getStatusCode(),
+                    "Subscribed to [" + topic + "] successfully.");
+        } else {
+            printStatusMessage(result.getStatusCode(),
+                    "Cannot subscribe to [" + topic + "] because you are" +
+                            "already subscribed.");
+        }
+    }
+
+    /**
+     * Handles the unsubscribe command, which unsubscribes the user to a topic.
+     *
+     * @param mediaHandler The media handler instance of the server.
+     * @param certificate  The user certificate to validate the operation.
+     * @throws IOException Throws this exception if any critical error happens.
+     */
+    public static void unsubscribe(MediaHandler mediaHandler,
+                                   DatagramCertificate certificate)
+            throws IOException {
+
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+
+        // Read and parse the topic
+        System.out.println("Type the topic you want to unsubscribe.");
+        DataFile.Topic topic = solveTopic(br.readLine());
+
+        // Send
+        DatagramObject result = mediaHandler.unsubscribe(
+                topic,
+                certificate);
+
+        if (result.getStatusCode() == 201) {
+            printStatusMessage(result.getStatusCode(),
+                    "Unsubscribed to [" + topic + "] successfully.");
+        } else {
+            printStatusMessage(result.getStatusCode(),
+                    "Cannot unsubscribe to [" + topic + "] because you are" +
+                            "not subscribed.");
+        }
+    }
+
+    // endregion
+
+    // region Media Handler queries
+
+    // TODO Handle string before parsing to int to avoid errors
+    /**
+     * Handles the get command, which gets lists of titles from the server using the
+     * information provided by the user as filter.
+     *
+     * @param mediaHandler  The media handler instance of the server.
+     * @param certificate   The user certificate to validate the operation.
+     * @throws IOException Throws this exception if any critical error happens.
+     */
+    public static void get(MediaHandler mediaHandler,
+                           DatagramCertificate certificate)
+            throws IOException {
+
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+
+        // Get search mode
+        System.out.println("Choose a search mode:");
+        System.out.println("1. Title");
+        System.out.println("2. Topic");
+        System.out.println("3. Text");
+        int mode = Integer.valueOf(br.readLine());
+
+        while (mode <= 0 || mode > 3) {
+            System.out.println("Not allowed mode. Choose again:");
+            mode = Integer.valueOf(br.readLine());
+        }
+
+        switch (mode) {
+            // By title
+            case 1: {
+                System.out.println("Type the title:");
+                String title = br.readLine();
+                DatagramObject result = mediaHandler.getFilesByTitle(title, certificate);
+
+                if(result.getStatusCode() == 404)
+                {
+                    printStatusMessage(result.getStatusCode(),
+                            "No files have been found with title [" + title + "]");
+                    return;
+                }
+
+                printStatusMessage(result.getStatusCode(),
+                        "Search by title result: ");
+                ArrayList<DataFile> resultList = (ArrayList<DataFile>) result.getContent();
+                for (DataFile file : resultList) {
+                    System.out.println("\t-" + file.getTitle() +
+                    ", by " + file.getOwner());
+                }
+
+                break;
+            }
+
+            // By topic
+            case 2: {
+                System.out.println("Type the topic:");
+                DataFile.Topic topic = solveTopic(br.readLine());
+                DatagramObject result = mediaHandler.getContents(topic, certificate);
+
+                if(result.getStatusCode() == 404)
+                {
+                    printStatusMessage(result.getStatusCode(),
+                            "No files have been found with topic [" + topic + "]");
+                    return;
+                }
+
+                printStatusMessage(result.getStatusCode(),
+                        "Search by topic result: ");
+                List<String> resultList = (List<String>) result.getContent();
+                for (String title : resultList) {
+                    System.out.println("\t-" + title);
+                }
+
+                break;
+            }
+
+            // By description
+            default: {
+                System.out.println("Type the text:");
+                String text = br.readLine();
+                DatagramObject result = mediaHandler.getContents(text, certificate);
+
+                if(result.getStatusCode() == 404)
+                {
+                    printStatusMessage(result.getStatusCode(),
+                            "No files have been found with text [" + text + "]");
+                    return;
+                }
+
+                printStatusMessage(result.getStatusCode(),
+                        "Search by text result: ");
+                List<String> resultList = (List<String>) result.getContent();
+                for (String title : resultList) {
+                    System.out.println("\t-" + title);
+                }
+            }
+        }
     }
 
     // endregion
@@ -282,5 +440,33 @@ public class MediaClientHandler {
     private static void printStatusMessage(DatagramObject statusObject, String message) {
         System.out.println("[" + statusObject.getStatusCode() + "]: " + message);
     }
+
+    /**
+     * Converts an String to a Topic. If the String matches the Topic, it will return the
+     * corresponding topic, otherwise it will return the default value: Undefined.
+     *
+     * @param topic The String corresponding to the Topic name.
+     * @return The Topic enum type corresponding to the String.
+     */
+    private static DataFile.Topic solveTopic(String topic) {
+        // Normalize the topic to match the enum syntax.
+        topic = topic.toLowerCase();
+        topic = topic.substring(0, 1).toUpperCase() + topic.substring(1, topic.length());
+
+        DataFile.Topic topicValue;
+
+        // Try to convert it to the corresponding enum topic, and if it is not possible,
+        // use the default value Undefined.
+        try {
+            topicValue = DataFile.Topic.valueOf(topic);
+        } catch (IllegalArgumentException e) {
+            System.out.println(
+                    "Non recognized topic [" + topic + "]: using default [Undefined].");
+            topicValue = DataFile.Topic.Undefined;
+        }
+
+        return topicValue;
+    }
+
     // endregion
 }
