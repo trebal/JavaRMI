@@ -48,7 +48,7 @@ public class MediaHandlerServer extends UnicastRemoteObject
                 "TestingDelete",
                 DataFile.Topic.Action,
                 "This is a file just for testing deleting purposes.",
-                "DefaultUser",
+                "1",
                 MEDIA_PATH + "Admin#TestingDelete")
         );
     }
@@ -229,17 +229,24 @@ public class MediaHandlerServer extends UnicastRemoteObject
 
         // Find the file
         for (DataFile file : files) {
-            if (file.getTitle().equals(title)) {
-                // Check if the user is the owner and thus has permission
-                if (file.getOwner().equals(certificate.getUsername())) {
-                    // Remove both logical and physical file
-                    files.remove(file);
-                    (new File(file.getPath())).delete();
+            // Check if the user is the owner and thus has permission
+            if (file.getTitle().equals(title) &&
+                    file.getOwner().equals(certificate.getUsername())) {
+
+                // Remove logical file
+                files.remove(file);
+
+                // Remove physical file
+                File rmFile = new File(file.getPath());
+                if(rmFile.delete())
+                {
                     // Success, No content
                     return new DatagramObject(204);
-                } else {
-                    // Operation unauthorized
-                    return new DatagramObject(401);
+                }
+                else{
+                    // Server error, Internal: file not found in the directory
+                    return new DatagramObject(500,
+                            "Physical file could not be found in the server.");
                 }
             }
         }

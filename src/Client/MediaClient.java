@@ -78,11 +78,15 @@ public class MediaClient {
                 handleCommand(br.readLine());
             } catch (IOException e) {
                 e.printStackTrace();
+                break;
             }
         }
 
         // Close buffer
         br.close();
+
+        System.out.println("Closing client.");
+        System.exit(0);
     }
 
     /**
@@ -96,19 +100,30 @@ public class MediaClient {
         String command = tokenizer.nextToken();
 
         switch (command) {
-            case "upload": {
+            case "upload":
+                System.out.println("command upload");
                 MediaClientHandler.upload(
                         mediaHandler,
                         certificate);
                 break;
-            }
 
-            case "download": {
+            case "download":
                 MediaClientHandler.download(
                         mediaHandler,
                         certificate);
                 break;
-            }
+
+            case "edit":
+                MediaClientHandler.edit(
+                        mediaHandler,
+                        certificate);
+                break;
+
+            case "delete":
+                MediaClientHandler.delete(
+                        mediaHandler,
+                        certificate);
+                break;
 
             case "get": {
                 if (tokenizer.countTokens() == 2) {
@@ -141,56 +156,6 @@ public class MediaClient {
                     }
                 }
                 System.out.println("Invalid [get] use: " + commandLine);
-                break;
-            }
-
-            case "edit": {
-                // Check if arguments are correct
-                if (tokenizer.countTokens() != 4) {
-                    System.out.println("Invalid [edit] use: " + commandLine +
-                            ". Use the following syntax: upload <title><topic><description>" +
-                            "<file name>");
-                    return;
-                }
-
-                // Get target file
-                String target = tokenizer.nextToken();
-
-                // Get file properties
-                String title = tokenizer.nextToken();
-                DataFile.Topic topic = solveTopic(tokenizer.nextToken());
-                String description = tokenizer.nextToken();
-
-                MediaPackage information = new MediaPackage(
-                        title,
-                        topic,
-                        description,
-                        certificate.getUsername()
-                );
-
-                // Send it
-                DatagramObject result = mediaHandler.edit(
-                        target,
-                        information,
-                        certificate);
-                System.out.println(statusCodeToString(result.getStatusCode()));
-
-                System.out.println(result.getStatusCode());
-
-                break;
-            }
-
-            case "delete": {
-                if (tokenizer.countTokens() != 1) {
-                    System.out.println("Invalid [delete] use: " + commandLine);
-                    return;
-                }
-
-                String title = tokenizer.nextToken();
-                DatagramObject result = mediaHandler.delete(title, certificate);
-
-                System.out.println(result.getStatusCode());
-
                 break;
             }
 
@@ -231,11 +196,7 @@ public class MediaClient {
                 break;
 
             case "debug":
-                DatagramObject result = mediaHandler.getFile("TestingDownload",
-                        "Admin",
-                        certificate);
-
-                System.out.println(result.getStatusCode());
+                System.out.println("Nothing loaded in debug mode.");
                 break;
 
             default:

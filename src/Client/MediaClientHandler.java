@@ -10,6 +10,9 @@ import Utilities.MediaUtilities;
 import javax.swing.*;
 import java.io.*;
 
+// TODO Make this class a singleton, which implements an interface
+// TODO Pass all the methods to an interface, and implement it
+// TODO Make the buffered reader global
 public class MediaClientHandler {
 
     private static final String DEFAULT_DIRECTORY =
@@ -18,8 +21,8 @@ public class MediaClientHandler {
     // region Media Handler main commands
 
     /**
-     * Handles the upload command, which uploads the selected file with the chosen
-     * parameters.
+     * Handles the upload command, which uploads a file from the server using
+     * the passed provided information.
      *
      * @param mediaHandler The media handler instance of the server.
      * @param certificate  The user certificate to validate the operation.
@@ -60,6 +63,7 @@ public class MediaClientHandler {
                     if (commandChoice == 1) {
                         break;
                     } else if (commandChoice == 2) {
+                        System.out.println("Operation canceled.");
                         return;
                     } else {
                         System.out.println("Type 1 for overwrite, 2 for cancel.");
@@ -100,12 +104,13 @@ public class MediaClientHandler {
                 information,
                 certificate);
 
-        System.out.println("Status: " + (statusCode.getStatusCode()));
-        br.close();
+        printStatusMessage(statusCode,
+                "File [" + title + "] uploaded successfully.");
     }
 
     /**
-     * Handles the download command, which downloads a file from the server by the title.
+     * Handles the download command, which downloads a file from the server using
+     * the passed title.
      *
      * @param mediaHandler The media handler instance of the server.
      * @param certificate  The user certificate to validate the operation.
@@ -153,22 +158,128 @@ public class MediaClientHandler {
             if (out != null) out.close();
         }
 
-        printStatusMessage(result,"File [" + title + "] downloaded successfully.");
+        printStatusMessage(result,
+                "File [" + title + "] downloaded successfully.");
     }
 
+    /**
+     * Handles the edit command, which edits a file from the server using
+     * the passed title.
+     *
+     * @param mediaHandler The media handler instance of the server.
+     * @param certificate  The user certificate to validate the operation.
+     * @throws IOException Throws this exception if any critical error happens.
+     */
+    public static void edit(MediaHandler mediaHandler,
+                            DatagramCertificate certificate)
+            throws IOException {
 
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+
+        // Get target file
+        System.out.println("Type the title of the file to edit.");
+        String targetTitle = br.readLine();
+
+        // Check if the file exists
+        DatagramObject result = mediaHandler.getFile(
+                targetTitle,
+                certificate.getUsername(),
+                certificate);
+
+        // If the file does not exist, finish transaction
+        if (result.getStatusCode() == 404) {
+            printStatusMessage(result.getStatusCode(),
+                    "You do not own any file with title [" + targetTitle + "]");
+            return;
+        }
+
+        // Get file properties
+        System.out.println("Type the new title for the file. Leave empty to not change it.");
+        String title = br.readLine();
+        System.out.println("Type a topic for the file. Leave empty to not change it.");
+        DataFile.Topic topic = MediaClient.solveTopic(br.readLine());
+        System.out.println("Type a description for the file. Leave empty to not change it.");
+        String description = br.readLine();
+
+        MediaPackage information = new MediaPackage(
+                title,
+                topic,
+                description,
+                certificate.getUsername()
+        );
+
+        // Send
+        result = mediaHandler.edit(
+                targetTitle,
+                information,
+                certificate);
+
+        if (result.getStatusCode() >= 200 && result.getStatusCode() < 300) {
+            printStatusMessage(result,
+                    "File with with title [" + targetTitle + "] edited successfully");
+        }
+    }
+
+    /**
+     * Handles the delete command, which deletes a file from the server using
+     * the passed title.
+     *
+     * @param mediaHandler The media handler instance of the server.
+     * @param certificate  The user certificate to validate the operation.
+     * @throws IOException Throws this exception if any critical error happens.
+     */
+    public static void delete(MediaHandler mediaHandler,
+                              DatagramCertificate certificate)
+            throws IOException {
+
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+
+        // Get target file
+        System.out.println("Type the title of the file to delete.");
+        String targetTitle = br.readLine();
+
+        // Send
+        DatagramObject result = mediaHandler.delete(targetTitle, certificate);
+
+        if (result.getStatusCode() >= 400 && result.getStatusCode() < 500) {
+            printStatusMessage(result.getStatusCode(),
+                    "You do not own any file with title [" + targetTitle + "]");
+        } else if (result.getStatusCode() >= 200 && result.getStatusCode() < 300) {
+            printStatusMessage(result,
+                    "File with with title [" + targetTitle + "] deleted successfully.");
+        }
+        else if(result.getStatusCode() >= 500)
+        {
+            printStatusMessage(result.getStatusCode(),
+                    "Internal server error: " +(String)result.getContent());
+        }
+    }
+
+    // endregion
+
+    // region Media Handler subscription
+
+    public static void subscribe(MediaHandler mediaHandler,
+                              DatagramCertificate certificate)
+            throws IOException {
+
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+
+
+/*
+        printStatusMessage(statusCode,
+                "File [" + title + "] uploaded successfully.");*/
+    }
 
     // endregion
 
     // region Utilities
 
-    private static void printStatusMessage(int status, String message)
-    {
+    private static void printStatusMessage(int status, String message) {
         System.out.println("[" + status + "]: " + message);
     }
 
-    private static void printStatusMessage(DatagramObject statusObject, String message)
-    {
+    private static void printStatusMessage(DatagramObject statusObject, String message) {
         System.out.println("[" + statusObject.getStatusCode() + "]: " + message);
     }
     // endregion
