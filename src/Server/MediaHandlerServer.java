@@ -323,7 +323,7 @@ public class MediaHandlerServer extends UnicastRemoteObject
 
         for (MediaCallback callback : clientCallback) {
             try {
-                callback.notifySubscriber(
+                callback.notify(
                         "\t-New file of [" + topic + "] with title uploaded: " + title);
             } catch (RemoteException e) {
                 System.out.println("Client could not be notified.");

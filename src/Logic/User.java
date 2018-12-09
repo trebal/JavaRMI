@@ -2,7 +2,7 @@ package Logic;
 
 import java.io.Serializable;
 
-// TODO Create a class named LogedUser. It will contian an user and the certificate
+// TODO Create a class named LoggedUser. It will contain an user and the certificate
 public class User implements Serializable{
 
     /**

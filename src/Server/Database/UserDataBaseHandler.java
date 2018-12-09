@@ -12,6 +12,8 @@ public abstract class UserDataBaseHandler {
      */
     private ArrayList<User> users;
 
+
+
     /**
      * Stores a new user in the database.
      * @param user The User object.

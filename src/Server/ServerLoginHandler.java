@@ -10,9 +10,17 @@ import java.util.Random;
 // TODO Do the login here
 public class ServerLoginHandler {
 
+    /**
+     * The size of the digital certificate which will be provided to the users.
+     */
     private static final int certificateLength = 8;
+    /**
+     * The random seed to generate certificates.
+     */
     private static Random random = new Random();
-
+    /**
+     * A list of the active users.
+     */
     private static List<User> activeUsers = new ArrayList<>();
 
     // TODO Get the user from the database

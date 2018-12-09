@@ -12,10 +12,10 @@ import java.util.StringTokenizer;
 
 public class MediaClientLauncher {
 
-    private static String portNum;// = "7777";
-    private static String address;// = "127.0.0.1";
-    private static String userName;// = "DefaultUser";
-    private static String userPass;// = "1234";
+    private static String portNum;
+    private static String address;
+    private static String userName;
+    private static String userPass;
     private static DatagramCertificate certificate = null;
 
     private static boolean running = true;
