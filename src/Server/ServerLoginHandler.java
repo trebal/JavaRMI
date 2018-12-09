@@ -1,6 +1,7 @@
-package Logic;
+package Server;
 
-import Utilities.User;
+import Logic.DatagramCertificate;
+import Logic.User;
 
 import java.util.ArrayList;
 import java.util.List;

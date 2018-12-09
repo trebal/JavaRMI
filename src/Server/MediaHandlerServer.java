@@ -1,4 +1,4 @@
-package Logic;
+package Server;
 
 import java.io.*;
 import java.rmi.RemoteException;
@@ -6,10 +6,12 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.List;
 
-import Utilities.DataFile;
-import Utilities.DatagramObject;
+import Logic.DatagramCertificate;
+import Logic.MediaPackage;
+import Logic.DataFile;
+import Logic.DatagramObject;
 import Utilities.MediaUtilities;
-import Utilities.User;
+import Logic.User;
 
 /**
  * This class is meant to be the object that the server launcher will register for the use
@@ -317,7 +319,7 @@ public class MediaHandlerServer extends UnicastRemoteObject
     private List<MediaCallback> clientCallback = new ArrayList<>();
 
     private void notifySubscribers(DataFile.Topic topic, String title) {
-        ArrayList<String> subsList = SubscriptionHandler.handler.getSubscriptionList(topic);
+        ArrayList<String> subsList = SubscriptionHandler.handler.getSubscriptionListByTopic(topic);
 
         for (MediaCallback callback : clientCallback) {
             try {
@@ -477,27 +479,10 @@ public class MediaHandlerServer extends UnicastRemoteObject
     }
 
     /**
-     * Adds a new DataFile reference.
-     *
-     * @param title       The title of the file.
-     * @param topic       The topic of the file.
-     * @param description The description of the file.
-     * @param username    The username of the Utilities.User who uploads the file.
-     */
-    public void addDataFile(String title, DataFile.Topic topic, String description, String username) {
-        String filePath = MEDIA_PATH + username.hashCode();
-        files.add(new DataFile(
-                title,
-                topic,
-                description,
-                filePath));
-    }
-
-    /**
-     * Adds a new DataFile reference.
-     *
+     * Adds a new logical file in the server.
      * @param information A MediaPackage structure that stores all the information required
-     *                    for a file transfer.
+     * for a file transfer.
+     * @param owner The owner of the file.
      */
     private void addDataFile(MediaPackage information, String owner) {
         String filePath = MEDIA_PATH + owner;

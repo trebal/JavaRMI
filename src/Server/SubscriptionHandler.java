@@ -1,12 +1,12 @@
-package Logic;
+package Server;
 
-import Utilities.DataFile;
+import Logic.DataFile;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A class to handle the subscription system.
+ * A class to handle the subscription system. This class acts as a singleton.
  */
 public class SubscriptionHandler {
 
@@ -21,11 +21,14 @@ public class SubscriptionHandler {
      */
     private ArrayList<ArrayList<String>> subscribers;
 
+    /**
+     * The singleton constructor.
+     */
     private SubscriptionHandler() {
-        subscribers = new ArrayList<ArrayList<String>>();
+        subscribers = new ArrayList<>();
 
         for (DataFile.Topic topic : DataFile.Topic.values()) {
-            subscribers.add(new ArrayList<String>());
+            subscribers.add(new ArrayList<>());
         }
     }
 
@@ -39,8 +42,10 @@ public class SubscriptionHandler {
      */
     public boolean addSubscriber(String username, DataFile.Topic topic) {
 
-        List<String> subsList = getSubscriptionList(topic);
+        // Create a sublist containing the subscribers of the topic
+        List<String> subsList = getSubscriptionListByTopic(topic);
 
+        // Add only if the subscriber is not subscribed already
         if (subsList.contains(username)) {
             return false;
         } else {
@@ -58,25 +63,31 @@ public class SubscriptionHandler {
      * int the list, false otherwise.
      */
     public boolean removeSubscriber(String username, DataFile.Topic topic) {
-        List<String> subsList = getSubscriptionList(topic);
 
+        // Create a sublist containing the subscribers of the topic
+        List<String> subsList = getSubscriptionListByTopic(topic);
+
+        // User found, return and validate
         if (subsList.contains(username)) {
             subsList.remove(username);
             return true;
-        } else {
+        }
+        // User not found, return false
+        else {
             return false;
         }
     }
 
     /**
-     * Returns the list of users subscribed to this topic. The topic is converted from
-     * enum to an ordinal (integer), which will act as an index to return the corresponding
+     * Returns the list of users subscribed to the passed topic.
+     * The topic is converted from enum to an ordinal (integer),
+     * which will act as an index to return the corresponding
      * sublist in the subscribers list.
      *
      * @param topic The topic subscription.
      * @return A list of users subscribed to this topic.
      */
-    public ArrayList<String> getSubscriptionList(DataFile.Topic topic) {
+    public ArrayList<String> getSubscriptionListByTopic(DataFile.Topic topic) {
         return subscribers.get(topic.ordinal());
     }
 }

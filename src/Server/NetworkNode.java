@@ -1,6 +1,6 @@
-package Logic;
+package Server;
 
-import Utilities.DatagramObject;
+import Logic.DatagramObject;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;

@@ -1,19 +1,16 @@
 package Client;
 
 import Logic.DatagramCertificate;
-import Logic.MediaCallbackClient;
-import Logic.MediaHandler;
-import Logic.MediaPackage;
-import Utilities.DataFile;
-import Utilities.DatagramObject;
-import Utilities.User;
+import Server.MediaCallbackClient;
+import Server.MediaHandler;
+import Logic.DatagramObject;
+import Logic.User;
 
 import java.io.*;
 import java.rmi.*;
-import java.util.List;
 import java.util.StringTokenizer;
 
-public class MediaClient {
+public class MediaClientLauncher {
 
     private static String portNum;// = "7777";
     private static String address;// = "127.0.0.1";
@@ -22,8 +19,6 @@ public class MediaClient {
     private static DatagramCertificate certificate = null;
 
     private static boolean running = true;
-    private static final String DEFAULT_DIRECTORY =
-            "user.home";
     private static final String configPath =
             "/home/rdc2/Escritorio/DC/A6/RMI_Client_Storage/config.cfg";
 
@@ -102,54 +97,50 @@ public class MediaClient {
         switch (command) {
             case "upload":
                 System.out.println("command upload");
-                MediaClientHandler.upload(
+                MediaHandlerClient.upload(
                         mediaHandler,
                         certificate);
                 break;
 
             case "download":
-                MediaClientHandler.download(
+                MediaHandlerClient.download(
                         mediaHandler,
                         certificate);
                 break;
 
             case "edit":
-                MediaClientHandler.edit(
+                MediaHandlerClient.edit(
                         mediaHandler,
                         certificate);
                 break;
 
             case "delete":
-                MediaClientHandler.delete(
+                MediaHandlerClient.delete(
                         mediaHandler,
                         certificate);
                 break;
 
             case "subscribe":
-                MediaClientHandler.subscribe(
+                MediaHandlerClient.subscribe(
                         mediaHandler,
                         mediaCallback,
                         certificate);
                 break;
 
             case "unsubscribe":
-                MediaClientHandler.unsubscribe(
+                MediaHandlerClient.unsubscribe(
                         mediaHandler,
                         certificate);
                 break;
 
             case "get":
-                MediaClientHandler.get(
+                MediaHandlerClient.get(
                         mediaHandler,
                         certificate);
                 break;
 
             case "exit":
                 running = false;
-                break;
-
-            case "debug":
-                System.out.println("Nothing loaded in debug mode.");
                 break;
 
             default:
@@ -159,25 +150,10 @@ public class MediaClient {
     }
 
     /**
-     * Converts an HTTP status code into a String.
-     *
-     * @param statusCode The numeric status code.
-     * @return The String corresponding to the status code.
-     */
-    private static String statusCodeToString(int statusCode) {
-        switch (statusCode) {
-            case 201:
-                return "(201) Operation accepted.";
-            default:
-                return "Unknown status code.";
-        }
-    }
-
-    /**
      * Loads the configuration contained in the configuration file.
      *
      * @param path The path where the file is located.
-     * @throws IOException Throws this exception if the file cannot be readed.
+     * @throws IOException Throws this exception if the file cannot be read.
      */
     private static void loadConfig(String path) throws IOException {
         BufferedReader br = null;
@@ -196,11 +172,3 @@ public class MediaClient {
         }
     }
 }
-
-/*
-JFrame frame = new JFrame("RMI Client");
-frame.setContentPane(new ClientUI().panelMain);
-frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-frame.pack();
-frame.setVisible(true);
-*/

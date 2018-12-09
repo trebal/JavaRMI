@@ -1,8 +1,10 @@
-package Logic;
+package Server;
 
-import Utilities.DataFile;
-import Utilities.DatagramObject;
-import Utilities.User;
+import Logic.DatagramCertificate;
+import Logic.MediaPackage;
+import Logic.DataFile;
+import Logic.DatagramObject;
+import Logic.User;
 
 import java.io.IOException;
 import java.rmi.Remote;

@@ -1,11 +1,11 @@
 package Client;
 
 import Logic.DatagramCertificate;
-import Logic.MediaCallback;
-import Logic.MediaHandler;
+import Server.MediaCallback;
+import Server.MediaHandler;
 import Logic.MediaPackage;
-import Utilities.DataFile;
-import Utilities.DatagramObject;
+import Logic.DataFile;
+import Logic.DatagramObject;
 import Utilities.MediaUtilities;
 
 import javax.swing.*;
@@ -16,7 +16,7 @@ import java.util.List;
 // TODO Make this class a singleton, which implements an interface
 // TODO Pass all the methods to an interface, and implement it
 // TODO Make the buffered reader global
-public class MediaClientHandler {
+public class MediaHandlerClient {
 
     private static final String DEFAULT_DIRECTORY =
             "user.home";
@@ -332,12 +332,13 @@ public class MediaClientHandler {
     // region Media Handler queries
 
     // TODO Handle string before parsing to int to avoid errors
+
     /**
      * Handles the get command, which gets lists of titles from the server using the
      * information provided by the user as filter.
      *
-     * @param mediaHandler  The media handler instance of the server.
-     * @param certificate   The user certificate to validate the operation.
+     * @param mediaHandler The media handler instance of the server.
+     * @param certificate  The user certificate to validate the operation.
      * @throws IOException Throws this exception if any critical error happens.
      */
     public static void get(MediaHandler mediaHandler,
@@ -365,8 +366,7 @@ public class MediaClientHandler {
                 String title = br.readLine();
                 DatagramObject result = mediaHandler.getFilesByTitle(title, certificate);
 
-                if(result.getStatusCode() == 404)
-                {
+                if (result.getStatusCode() == 404) {
                     printStatusMessage(result.getStatusCode(),
                             "No files have been found with title [" + title + "]");
                     return;
@@ -377,7 +377,7 @@ public class MediaClientHandler {
                 ArrayList<DataFile> resultList = (ArrayList<DataFile>) result.getContent();
                 for (DataFile file : resultList) {
                     System.out.println("\t-" + file.getTitle() +
-                    ", by " + file.getOwner());
+                            ", by " + file.getOwner());
                 }
 
                 break;
@@ -389,8 +389,7 @@ public class MediaClientHandler {
                 DataFile.Topic topic = solveTopic(br.readLine());
                 DatagramObject result = mediaHandler.getContents(topic, certificate);
 
-                if(result.getStatusCode() == 404)
-                {
+                if (result.getStatusCode() == 404) {
                     printStatusMessage(result.getStatusCode(),
                             "No files have been found with topic [" + topic + "]");
                     return;
@@ -412,8 +411,7 @@ public class MediaClientHandler {
                 String text = br.readLine();
                 DatagramObject result = mediaHandler.getContents(text, certificate);
 
-                if(result.getStatusCode() == 404)
-                {
+                if (result.getStatusCode() == 404) {
                     printStatusMessage(result.getStatusCode(),
                             "No files have been found with text [" + text + "]");
                     return;

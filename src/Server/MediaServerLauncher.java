@@ -1,6 +1,6 @@
-package Logic;
+package Server;
 
-import Utilities.DatagramObject;
+import Logic.DatagramObject;
 
 import java.io.*;
 import java.rmi.*;
@@ -12,8 +12,6 @@ public class MediaServerLauncher {
 
     private static int port = 7777;
     private static String address = "127.0.0.1";
-    private static String configPath =
-            "/home/rdc2/Escritorio/DC/A6/RMI_Client_Storage/config.cfg";
 
     private static MediaHandlerServer exportedObj;
     private static NetworkNode debugNode;
@@ -23,17 +21,9 @@ public class MediaServerLauncher {
     public static void main(String args[])
             throws IOException, NotBoundException {
 
-        port = Integer.valueOf(args[0]);
-
-        // TODO Load from file
-        /*
-        // Load configuration file
-        try {
-            loadConfig(configPath);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        */
+        // Load configuration
+        String file = args[0];
+        loadConfig(file);
 
         // Create and export the object
         try {
@@ -51,6 +41,7 @@ public class MediaServerLauncher {
             System.out.println("Exception catch." + e);
         }
 
+        // TODO Move the command handler somewhere else
         // Create a buffered reader to read commands from the console
         BufferedReader br = new BufferedReader(
                 new InputStreamReader(System.in));
@@ -67,48 +58,6 @@ public class MediaServerLauncher {
         // Close buffer
         br.close();
         System.exit(0);
-    }
-
-    /**
-     * Start a RMI registry on the local host, if it does not already
-     * exists at the specified port number.
-     *
-     * @param RMIPortNum The port of this RMI server.
-     * @throws RemoteException throws this exception.
-     */
-    private static void startRegistry(int RMIPortNum) throws RemoteException {
-        try {
-            Registry registry = LocateRegistry.getRegistry(RMIPortNum);
-            registry.list();
-        }
-        // The above call will throw an exception if the registry does not already exist
-        catch (RemoteException ex) {
-            // No valid registry at that port.
-            System.out.println("RMI registry cannot be located at port " + RMIPortNum);
-            Registry registry = LocateRegistry.createRegistry(RMIPortNum);
-            System.out.println("RMI registry created at port " + RMIPortNum);
-        }
-    }
-
-    /**
-     * Loads the configuration contained in the configuration file.
-     *
-     * @param path The path where the file is located.
-     * @throws IOException Throws this exception if the file cannot be read.
-     */
-    private static void loadConfig(String path) throws IOException {
-        BufferedReader br = null;
-        try {
-            br = new BufferedReader(new FileReader(path));
-            address = br.readLine();
-            port = Integer.valueOf(br.readLine());
-        } catch (FileNotFoundException e) {
-            System.out.println("Error while trying to read config file:\n" + e);
-        } finally {
-            if (br != null) {
-                br.close();
-            }
-        }
     }
 
     private static void handleCommand(String commandLine)
@@ -146,6 +95,8 @@ public class MediaServerLauncher {
         }
     }
 
+    // region Server Utitilies
+
     /**
      * Generates the URL corresponding to the RMI server entity with the
      * correct syntax.
@@ -157,4 +108,50 @@ public class MediaServerLauncher {
     private static String getRegistryURL(String address, int port) {
         return "rmi://" + address + ":" + port + "/media";
     }
+
+    /**
+     * Start a RMI registry on the local host, if it does not already
+     * exists at the specified port number.
+     *
+     * @param RMIPortNum The port of this RMI server.
+     * @throws RemoteException throws this exception.
+     */
+    private static void startRegistry(int RMIPortNum) throws RemoteException {
+        try {
+            Registry registry = LocateRegistry.getRegistry(RMIPortNum);
+            registry.list();
+        }
+        // The above call will throw an exception if the registry does not already exist
+        catch (RemoteException ex) {
+            // No valid registry at that port.
+            System.out.println("RMI registry cannot be located at port " + RMIPortNum);
+            Registry registry = LocateRegistry.createRegistry(RMIPortNum);
+            System.out.println("RMI registry created at port " + RMIPortNum);
+        }
+    }
+
+    /**
+     * Loads the configuration contained in the configuration file.
+     *
+     * @param path The path where the file is located.
+     * @throws IOException Throws this exception if the file cannot be read.
+     */
+    private static void loadConfig(String path) throws IOException {
+        BufferedReader br = null;
+        try {
+            br = new BufferedReader(new FileReader(path));
+            address = br.readLine();
+            port = Integer.valueOf(br.readLine());
+        } catch (FileNotFoundException e) {
+            System.out.println("Error while trying to read config file:" +
+                    "\n" + e);
+            System.exit(1);
+        } finally {
+            if (br != null) {
+                br.close();
+            }
+        }
+    }
+
+    // endregion
 }

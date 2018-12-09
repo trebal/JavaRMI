@@ -1,7 +1,5 @@
 package Logic;
 
-import Utilities.DataFile;
-
 import java.io.Serializable;
 
 // TODO Remove this class and use DataFile instead

@@ -1,8 +1,7 @@
-package Logic;
+package Server;
 
 import java.io.Serializable;
 import java.rmi.RemoteException;
-import java.rmi.server.RemoteObject;
 import java.rmi.server.UnicastRemoteObject;
 
 public class MediaCallbackClient extends UnicastRemoteObject implements MediaCallback, Serializable{
