@@ -6,6 +6,7 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.List;
 
+import Client.MediaCallback;
 import Logic.DatagramCertificate;
 import Logic.MediaPackage;
 import Logic.DataFile;
@@ -20,15 +21,16 @@ import Logic.User;
 public class MediaHandlerServer extends UnicastRemoteObject
         implements MediaHandler, NetworkNode {
 
-    public static final String MEDIA_PATH =
-            "/home/rdc2/Escritorio/DC/A6/Server/Storage/";
-
     private List<DataFile> files = new ArrayList<>();
 
     private static char fileSeparator = '#';
+    private static String MEDIA_PATH;
 
-    MediaHandlerServer()
+    MediaHandlerServer(String mediaPath)
             throws RemoteException {
+
+        MEDIA_PATH = mediaPath;
+
         // TODO Create a method to extract everything from the database
         files.add(new DataFile(
                 "TestingDownload",
@@ -108,8 +110,6 @@ public class MediaHandlerServer extends UnicastRemoteObject
             return new DatagramObject(401);
         }
 
-        System.out.println(certificate.getUsername());
-
         // Generate the path
         String path = MEDIA_PATH + generateFileName(
                 information.getTitle(), certificate.getUsername());
@@ -163,16 +163,14 @@ public class MediaHandlerServer extends UnicastRemoteObject
             return new DatagramObject(401);
         }
 
+        // Get the data file
         DataFile file = getFileByTitle(title);
 
         if (file != null) {
-            System.out.println("Client download file with title [" + title + "]");
             byte[] content = MediaUtilities.convertToByes(file.getPath());
-            System.out.println("Retrieved successfully");
             return new DatagramObject(202,
                     content);
         } else {
-            System.out.println("Requested file not found.");
             return new DatagramObject(404);
         }
     }

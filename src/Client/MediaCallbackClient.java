@@ -1,4 +1,4 @@
-package Server;
+package Client;
 
 import java.io.Serializable;
 import java.rmi.RemoteException;

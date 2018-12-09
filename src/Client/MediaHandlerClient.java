@@ -1,7 +1,6 @@
 package Client;
 
 import Logic.DatagramCertificate;
-import Server.MediaCallback;
 import Server.MediaHandler;
 import Logic.MediaPackage;
 import Logic.DataFile;

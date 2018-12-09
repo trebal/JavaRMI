@@ -10,8 +10,9 @@ import java.util.StringTokenizer;
 
 public class MediaServerLauncher {
 
-    private static int port = 7777;
-    private static String address = "127.0.0.1";
+    private static String MEDIA_PATH;
+    private static int port;
+    private static String address;
 
     private static MediaHandlerServer exportedObj;
     private static NetworkNode debugNode;
@@ -21,13 +22,12 @@ public class MediaServerLauncher {
     public static void main(String args[])
             throws IOException, NotBoundException {
 
-        // Load configuration
-        String file = args[0];
-        loadConfig(file);
+        // Load configuration file from parameter path
+        loadConfig(args[0]);
 
         // Create and export the object
         try {
-            exportedObj = new MediaHandlerServer();
+            exportedObj = new MediaHandlerServer(MEDIA_PATH);
             startRegistry(port);
 
             // Register the object
@@ -140,6 +140,7 @@ public class MediaServerLauncher {
         BufferedReader br = null;
         try {
             br = new BufferedReader(new FileReader(path));
+            MEDIA_PATH = br.readLine();
             address = br.readLine();
             port = Integer.valueOf(br.readLine());
         } catch (FileNotFoundException e) {

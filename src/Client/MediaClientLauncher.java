@@ -1,7 +1,6 @@
 package Client;
 
 import Logic.DatagramCertificate;
-import Server.MediaCallbackClient;
 import Server.MediaHandler;
 import Logic.DatagramObject;
 import Logic.User;
@@ -19,8 +18,6 @@ public class MediaClientLauncher {
     private static DatagramCertificate certificate = null;
 
     private static boolean running = true;
-    private static final String configPath =
-            "/home/rdc2/Escritorio/DC/A6/RMI_Client_Storage/config.cfg";
 
     private static MediaCallbackClient mediaCallback;
     private static MediaHandler mediaHandler;
@@ -28,7 +25,7 @@ public class MediaClientLauncher {
     public static void main(String args[]) throws IOException {
 
         // Load client configuration
-        loadConfig(configPath);
+        loadConfig(args[0]);
 
         // Get the remote handler and create the callback object
         try {
@@ -161,8 +158,6 @@ public class MediaClientLauncher {
             br = new BufferedReader(new FileReader(path));
             address = br.readLine();
             portNum = br.readLine();
-            userName = br.readLine();
-            userPass = br.readLine();
         } catch (FileNotFoundException e) {
             System.out.println("Error while trying to read config file:\n" + e);
         } finally {
