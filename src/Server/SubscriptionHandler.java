@@ -1,7 +1,9 @@
 package Server;
 
+import Client.MediaCallback;
 import Logic.DataFile;
 
+import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -77,6 +79,19 @@ public class SubscriptionHandler {
             return false;
         }
     }
+    /*
+    public void notifySubscribers(DataFile.Topic topic, String title) {
+        ArrayList<String> subsList = SubscriptionHandler.handler.getSubscriptionListByTopic(topic);
+
+        for (MediaCallback callback : clientCallback) {
+            try {
+                callback.notify(
+                        "\t-New file of [" + topic + "] with title uploaded: " + title);
+            } catch (RemoteException e) {
+                System.out.println("Client could not be notified.");
+            }
+        }
+    }*/
 
     /**
      * Returns the list of users subscribed to the passed topic.

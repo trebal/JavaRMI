@@ -2,6 +2,7 @@ package Server;
 
 import Logic.DatagramCertificate;
 import Logic.User;
+import Server.Database.UserHandler;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,15 +29,11 @@ public class ServerLoginHandler {
     /**
      * Extracts a user from the data base.
      *
-     * @param userName The name of the User.
+     * @param username The name of the User.
      * @return A User object.
      */
-    public static User getUserFromDB(String userName) {
-        if(userName.equals("1"))
-        {
-           return new User("1","1");
-        }
-        return new User("DefaultUser", "1234");
+    public static User getUserFromDB(String username) {
+        return UserHandler.getUser(username);
     }
 
     /**
