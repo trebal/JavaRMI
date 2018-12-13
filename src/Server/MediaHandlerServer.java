@@ -289,6 +289,8 @@ public class MediaHandlerServer extends UnicastRemoteObject
 
     // region Subscription
 
+    private List<MediaCallback> clientCallback = new ArrayList<>();
+
     /**
      * Subscribes the user to an specific Topic. The user will be notified
      * any time a new file with this Topic is uploaded.
@@ -319,6 +321,14 @@ public class MediaHandlerServer extends UnicastRemoteObject
                 new DatagramObject(409);
     }
 
+    /**
+     * Unsubscribes the user from an specific Topic.
+     *
+     * @param topic       The Topic which the user unsubscribes.
+     * @param certificate The user certificate to validate the operation.
+     * @return A DatagramObject containing an HTTP status code.
+     * @throws RemoteException Throws this exception if there is any problem.
+     */
     @Override
     public DatagramObject unsubscribe(
             DataFile.Topic topic,
@@ -337,8 +347,11 @@ public class MediaHandlerServer extends UnicastRemoteObject
                 new DatagramObject(201) : new DatagramObject(409);
     }
 
-    private List<MediaCallback> clientCallback = new ArrayList<>();
-
+    /**
+     * Notifies all subscribers about a new file submission belonging to the topic .
+     * @param topic The Topic of the new uploaded file.
+     * @param title The title of the new uploaded file.
+     */
     private void notifySubscribers(DataFile.Topic topic, String title) {
         ArrayList<String> subsList = SubscriptionHandler.handler.getSubscriptionListByTopic(topic);
 
