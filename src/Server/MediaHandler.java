@@ -43,6 +43,7 @@ public interface MediaHandler extends Remote {
      */
 
     DatagramObject download(String title,
+                            String owner,
                             DatagramCertificate certificate)
             throws IOException;
 
@@ -114,8 +115,8 @@ public interface MediaHandler extends Remote {
             throws RemoteException;
 
     /**
-     * Returns a DataFile list containing the information of a physical file with the
-     * passed title.
+     * Returns a DataFile list containing each one the information of a physical file
+     * with the passed title.
      *
      * @param title       The title of the file.
      * @param certificate The user certificate to validate the operation.

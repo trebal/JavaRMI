@@ -155,6 +155,7 @@ public class MediaHandlerServer extends UnicastRemoteObject
      */
     @Override
     public DatagramObject download(String title,
+                                   String owner,
                                    DatagramCertificate certificate)
             throws IOException {
 
@@ -164,14 +165,25 @@ public class MediaHandlerServer extends UnicastRemoteObject
         }
 
         // Get the data file
-        DataFile file = getFileByTitle(title);
+        DataFile file = getExactFile(title, owner);
 
-        if (file != null) {
+        // Not found
+        if(file == null)
+        {
+            return new DatagramObject(404);
+        }
+
+        // Success
+        try {
             byte[] content = MediaUtilities.convertToByes(file.getPath());
             return new DatagramObject(202,
                     content);
-        } else {
-            return new DatagramObject(404);
+        }
+        // Internal server error (physical file not found)
+        catch (Exception e)
+        {
+            return new DatagramObject(500,
+                    "Physical file could not be found in the server.");
         }
     }
 
@@ -196,25 +208,20 @@ public class MediaHandlerServer extends UnicastRemoteObject
             return new DatagramObject(401);
         }
 
-        // Find the file
-        for (DataFile file : files) {
-            if (file.getTitle().equals(title)) {
-                // Check if the user is the owner and thus has permission
-                if (file.getOwner().equals(certificate.getUsername())) {
-                    // Overwrite logical file
-                    files.remove(file);
-                    addDataFile(information, certificate.getUsername());
-                    // TODO Change physical file name
-                    // Success, No content
-                    return new DatagramObject(204);
-                } else {
-                    // Operation unauthorized
-                    return new DatagramObject(401);
-                }
-            }
-        }
+        // Get the data file
+        DataFile file = getExactFile(title, certificate.getUsername());
+
         // Not found
-        return new DatagramObject(404);
+        if (file == null) {
+            return new DatagramObject(404);
+        }
+
+        // Overwrite logical file
+        files.remove(file);
+        addDataFile(information, certificate.getUsername());
+        // TODO Change physical file name
+        // Success, No content
+        return new DatagramObject(204);
     }
 
     /**
@@ -235,31 +242,29 @@ public class MediaHandlerServer extends UnicastRemoteObject
             return new DatagramObject(401);
         }
 
-        // Find the file
-        for (DataFile file : files) {
-            // Check if the user is the owner and thus has permission
-            if (file.getTitle().equals(title) &&
-                    file.getOwner().equals(certificate.getUsername())) {
+        // Get the file
+        DataFile file = getExactFile(title, certificate.getUsername());
 
-                // Remove logical file
-                files.remove(file);
-
-                // Remove physical file
-                File rmFile = new File(file.getPath());
-                if(rmFile.delete())
-                {
-                    // Success, No content
-                    return new DatagramObject(204);
-                }
-                else{
-                    // Server error, Internal: file not found in the directory
-                    return new DatagramObject(500,
-                            "Physical file could not be found in the server.");
-                }
-            }
+        // File not found
+        if(file == null)
+        {
+            return new DatagramObject(404);
         }
-        // Not found
-        return new DatagramObject(404);
+
+        // Remove logical file
+        files.remove(file);
+        // Remove physical file
+        File rmFile = new File(file.getPath());
+        if(rmFile.delete())
+        {
+            // Success, No content
+            return new DatagramObject(204);
+        }
+        else{
+            // Server error, Internal: file not found in the directory
+            return new DatagramObject(500,
+                    "Physical file could not be found in the server.");
+        }
     }
 
     // endregion
@@ -417,8 +422,8 @@ public class MediaHandlerServer extends UnicastRemoteObject
     }
 
     /**
-     * Returns a DataFile list containing the information of a physical file with the
-     * passed title.
+     * Returns a DataFile list containing each one the information of a physical file
+     * with the passed title.
      * @param title The title of the file.
      * @param certificate The user certificate to validate the operation.
      * @return A DatagramObject containing an HTTP status code and a list of titles.
@@ -433,7 +438,7 @@ public class MediaHandlerServer extends UnicastRemoteObject
 
         for(DataFile file : files)
         {
-            if(file.getTitle().equals(title))
+            if(file.getTitle().contains(title))
             {
                 coincidences.add(file);
             }
@@ -460,19 +465,20 @@ public class MediaHandlerServer extends UnicastRemoteObject
     }
 
     /**
-     * Finds and returns a file which title is the one passed by parameter.
+     * Finds and returns a file which title and owner are the ones passed by parameter.
      *
      * @param title The title of the file.
      * @return The DataFile corresponding to the title.
      */
-    private DataFile getFileByTitle(String title) {
-        for (DataFile file : files) {
-            if (file.getTitle().equals(title)) {
-                System.out.println("File with title[" + title + "] found.");
+    private DataFile getExactFile(String title, String owner) {
+
+        for(DataFile file : files)
+        {
+            if(file.getTitle().equals(title) && file.getOwner().equals(owner))
+            {
                 return file;
             }
         }
-        System.out.println("File with title[" + title + "] not found.");
         return null;
     }
 

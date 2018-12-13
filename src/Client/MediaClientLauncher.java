@@ -13,8 +13,6 @@ public class MediaClientLauncher {
 
     private static String portNum;
     private static String address;
-    private static String userName;
-    private static String userPass;
     private static DatagramCertificate certificate = null;
 
     private static boolean running = true;
@@ -44,9 +42,9 @@ public class MediaClientLauncher {
         while (true) {
             try {
                 System.out.println("Type your user name:");
-                userName = br.readLine();
+                String userName = br.readLine();
                 System.out.println("Type your password:");
-                userPass = br.readLine();
+                String userPass = br.readLine();
                 User user = new User(userName, userPass);
 
                 DatagramObject status = mediaHandler.login(user);
@@ -93,7 +91,6 @@ public class MediaClientLauncher {
 
         switch (command) {
             case "upload":
-                System.out.println("command upload");
                 MediaHandlerClient.upload(
                         mediaHandler,
                         certificate);

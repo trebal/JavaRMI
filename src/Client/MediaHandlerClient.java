@@ -126,19 +126,54 @@ public class MediaHandlerClient {
 
         // Download the file with the title from the server
         System.out.println("Type the title of the file.");
-        // TODO Handle different files with same titles but different owners
         String title = br.readLine();
-        DatagramObject result = mediaHandler.download(title, certificate);
+
+        // Get the list of files with that title
+        DatagramObject result = mediaHandler.getFilesByTitle(
+                title, certificate);
 
         // File not found
         if (result.getStatusCode() == 404) {
-            printStatusMessage(result, "File not found in the server.");
+            printStatusMessage(result,
+                    "File not found in the server.");
+            return;
+        }
+        else if(result.getStatusCode() == 500)
+        {
+            printStatusMessage(result,
+                    "Physical file not found in the server.");
             return;
         }
 
-        String path;
+        // Get the list of files
+        ArrayList<DataFile> files = (ArrayList<DataFile>)result.getContent();
+
+        String owner;
+
+        // List contains only one title
+        if(files.size() == 1)
+        {
+            owner = files.get(0).getOwner();
+        }
+        // List contains multiple titles, choose by owner
+        else{
+            int ownerIndex = 1;
+            System.out.println("Multiple files found with the same name." +
+                    "Choose from which used you want to download.");
+            for(DataFile file : files)
+            {
+                System.out.println(
+                        ownerIndex + ".-" +
+                        file.getTitle() +", by " + file.getOwner());
+                ownerIndex+=1;
+            }
+            // Get the owner, corresponding to the selected index by the user
+            owner = files.get(Integer.valueOf(br.readLine()) - 1).getOwner();
+        }
+        result = mediaHandler.download(title, owner, certificate);
 
         // Open a file explorer and set its default directory
+        String path;
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setCurrentDirectory(
                 new File(System.getProperty(DEFAULT_DIRECTORY)));
@@ -351,11 +386,22 @@ public class MediaHandlerClient {
         System.out.println("1. Title");
         System.out.println("2. Topic");
         System.out.println("3. Text");
-        int mode = Integer.valueOf(br.readLine());
+        int mode;
+        while(true)
+        {
+            try{
+                mode  = Integer.valueOf(br.readLine());
 
-        while (mode <= 0 || mode > 3) {
-            System.out.println("Not allowed mode. Choose again:");
-            mode = Integer.valueOf(br.readLine());
+                if(mode >= 1 && mode <= 3)
+                {
+                    break;
+                }
+            }
+            catch (Exception e)
+            {
+                System.out.println("Not a valid number. " +
+                        "Choose again a value between 1 and 3 (included):");
+            }
         }
 
         switch (mode) {
