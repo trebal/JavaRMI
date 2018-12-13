@@ -255,6 +255,11 @@ public class MediaHandlerClient {
             printStatusMessage(result,
                     "File with with title [" + targetTitle + "] edited successfully");
         }
+        else
+        {
+            printStatusMessage(result,
+                    (String) result.getContent());
+        }
     }
 
     /**

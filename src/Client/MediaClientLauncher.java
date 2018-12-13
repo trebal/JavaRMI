@@ -57,7 +57,7 @@ public class MediaClientLauncher {
                     System.out.println("Wrong username or password. Try again.");
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                System.out.println("Could not log in the server.");
             }
         }
 

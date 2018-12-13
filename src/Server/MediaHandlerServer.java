@@ -133,7 +133,9 @@ public class MediaHandlerServer extends UnicastRemoteObject
         catch (Exception e)
         {
             // Internal server error
-            return new DatagramObject(500);
+            System.out.println("Internal server error while using [upload]");
+            return new DatagramObject(500,
+                    "Server could not write file.");
         }
         finally {
             if (out != null) {
@@ -182,6 +184,7 @@ public class MediaHandlerServer extends UnicastRemoteObject
         // Internal server error (physical file not found)
         catch (Exception e)
         {
+            System.out.println("Internal server error while using [download]");
             return new DatagramObject(500,
                     "Physical file could not be found in the server.");
         }
@@ -219,9 +222,22 @@ public class MediaHandlerServer extends UnicastRemoteObject
         // Overwrite logical file
         files.remove(file);
         addDataFile(information, certificate.getUsername());
-        // TODO Change physical file name
-        // Success, No content
-        return new DatagramObject(204);
+        // Rename physical file
+        File editFile = new File(file.getPath());
+        File newFile = new File(MEDIA_PATH + generateFileName(
+                information.getTitle(),
+                certificate.getUsername()));
+        if(editFile.renameTo(newFile))
+        {
+            // Success, No content
+            return new DatagramObject(204);
+        }
+        else{
+            // Server error, Internal: file not found in the directory
+            System.out.println("Internal server error while using [edit]");
+            return new DatagramObject(500,
+                    "Physical file could not be found in the server.");
+        }
     }
 
     /**
@@ -262,6 +278,8 @@ public class MediaHandlerServer extends UnicastRemoteObject
         }
         else{
             // Server error, Internal: file not found in the directory
+            System.out.println("Internal server error while using [delete]");
+            System.out.println(file.getPath());
             return new DatagramObject(500,
                     "Physical file could not be found in the server.");
         }
@@ -489,7 +507,7 @@ public class MediaHandlerServer extends UnicastRemoteObject
      * @param owner The owner of the file.
      */
     private void addDataFile(MediaPackage information, String owner) {
-        String filePath = MEDIA_PATH + owner;
+        String filePath = MEDIA_PATH + generateFileName(information.getTitle(), owner);
         files.add(new DataFile(
                 information.getTitle(),
                 information.getTopic(),
