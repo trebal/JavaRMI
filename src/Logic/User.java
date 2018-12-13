@@ -1,5 +1,7 @@
 package Logic;
 
+import Client.MediaCallback;
+
 import java.io.Serializable;
 
 // TODO Create a class named LoggedUser. It will contain an user and the certificate

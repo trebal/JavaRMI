@@ -11,6 +11,7 @@ import Logic.DatagramCertificate;
 import Logic.MediaPackage;
 import Logic.DataFile;
 import Logic.DatagramObject;
+import Server.Database.UserHandler;
 import Utilities.MediaUtilities;
 import Logic.User;
 
@@ -68,8 +69,7 @@ public class MediaHandlerServer extends UnicastRemoteObject
     // region Network Node
 
     @Override
-    public DatagramObject join(NetworkNode node) throws RemoteException
-    {
+    public DatagramObject join(NetworkNode node) throws RemoteException {
         System.out.println("New connection");
         // TODO Add the node to the node list
         NetworkNode newNode = node;
@@ -78,8 +78,7 @@ public class MediaHandlerServer extends UnicastRemoteObject
     }
 
     @Override
-    public DatagramObject ping() throws RemoteException
-    {
+    public DatagramObject ping() throws RemoteException {
         System.out.println("Received ping");
 
         return new DatagramObject(200);
@@ -129,15 +128,12 @@ public class MediaHandlerServer extends UnicastRemoteObject
 
             // Notify subscribers
             notifySubscribers(information.getTopic(), information.getTitle());
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             // Internal server error
             System.out.println("Internal server error while using [upload]");
             return new DatagramObject(500,
                     "Server could not write file.");
-        }
-        finally {
+        } finally {
             if (out != null) {
                 out.close();
             }
@@ -170,8 +166,7 @@ public class MediaHandlerServer extends UnicastRemoteObject
         DataFile file = getExactFile(title, owner);
 
         // Not found
-        if(file == null)
-        {
+        if (file == null) {
             return new DatagramObject(404);
         }
 
@@ -182,8 +177,7 @@ public class MediaHandlerServer extends UnicastRemoteObject
                     content);
         }
         // Internal server error (physical file not found)
-        catch (Exception e)
-        {
+        catch (Exception e) {
             System.out.println("Internal server error while using [download]");
             return new DatagramObject(500,
                     "Physical file could not be found in the server.");
@@ -227,12 +221,10 @@ public class MediaHandlerServer extends UnicastRemoteObject
         File newFile = new File(MEDIA_PATH + generateFileName(
                 information.getTitle(),
                 certificate.getUsername()));
-        if(editFile.renameTo(newFile))
-        {
+        if (editFile.renameTo(newFile)) {
             // Success, No content
             return new DatagramObject(204);
-        }
-        else{
+        } else {
             // Server error, Internal: file not found in the directory
             System.out.println("Internal server error while using [edit]");
             return new DatagramObject(500,
@@ -262,8 +254,7 @@ public class MediaHandlerServer extends UnicastRemoteObject
         DataFile file = getExactFile(title, certificate.getUsername());
 
         // File not found
-        if(file == null)
-        {
+        if (file == null) {
             return new DatagramObject(404);
         }
 
@@ -271,12 +262,10 @@ public class MediaHandlerServer extends UnicastRemoteObject
         files.remove(file);
         // Remove physical file
         File rmFile = new File(file.getPath());
-        if(rmFile.delete())
-        {
+        if (rmFile.delete()) {
             // Success, No content
             return new DatagramObject(204);
-        }
-        else{
+        } else {
             // Server error, Internal: file not found in the directory
             System.out.println("Internal server error while using [delete]");
             System.out.println(file.getPath());
@@ -312,11 +301,8 @@ public class MediaHandlerServer extends UnicastRemoteObject
             return new DatagramObject(401);
         }
 
-        // Add the client callback if it does not exist yet
-        if (!clientCallback.contains(caller)) {
-            clientCallback.add(caller);
-        }
-        return SubscriptionHandler.handler.addSubscriber(certificate.getUsername(), topic) ?
+        return SubscriptionHandler.handler.addSubscriber(
+                certificate.getUsername(), topic, caller) ?
                 new DatagramObject(201) :
                 new DatagramObject(409);
     }
@@ -340,29 +326,22 @@ public class MediaHandlerServer extends UnicastRemoteObject
             return new DatagramObject(401);
         }
 
-        // TODO Remove the callback if the client has not any subscription
-
         return SubscriptionHandler.handler.removeSubscriber(
                 certificate.getUsername(), topic) ?
-                new DatagramObject(201) : new DatagramObject(409);
+                new DatagramObject(201) :
+                new DatagramObject(409);
     }
 
     /**
      * Notifies all subscribers about a new file submission belonging to the topic .
+     *
      * @param topic The Topic of the new uploaded file.
      * @param title The title of the new uploaded file.
      */
     private void notifySubscribers(DataFile.Topic topic, String title) {
-        ArrayList<String> subsList = SubscriptionHandler.handler.getSubscriptionListByTopic(topic);
 
-        for (MediaCallback callback : clientCallback) {
-            try {
-                callback.notify(
-                        "\t-New file of [" + topic + "] with title uploaded: " + title);
-            } catch (RemoteException e) {
-                System.out.println("Client could not be notified.");
-            }
-        }
+        SubscriptionHandler.handler.notifySubscribers(topic, title);
+
     }
 
     // endregion
@@ -429,22 +408,20 @@ public class MediaHandlerServer extends UnicastRemoteObject
     /**
      * Returns the DataFile corresponding to the physical file with the passed title
      * and owner.
-     * @param title The title of the file.
-     * @param owner The owner of the file.
+     *
+     * @param title       The title of the file.
+     * @param owner       The owner of the file.
      * @param certificate The user certificate to validate the operation.
      * @return A DatagramObject containing an HTTP status code and a titles (if found).
      * @throws RemoteException Throws this exception if there is any problem.
      */
     @Override
     public DatagramObject getFile(String title,
-                                          String owner,
-                                          DatagramCertificate certificate)
-            throws RemoteException
-    {
-        for(DataFile file : files)
-        {
-            if(file.getTitle().equals(title) && file.getOwner().equals(owner))
-            {
+                                  String owner,
+                                  DatagramCertificate certificate)
+            throws RemoteException {
+        for (DataFile file : files) {
+            if (file.getTitle().equals(title) && file.getOwner().equals(owner)) {
                 return new DatagramObject(200, file);
             }
         }
@@ -455,7 +432,8 @@ public class MediaHandlerServer extends UnicastRemoteObject
     /**
      * Returns a DataFile list containing each one the information of a physical file
      * with the passed title.
-     * @param title The title of the file.
+     *
+     * @param title       The title of the file.
      * @param certificate The user certificate to validate the operation.
      * @return A DatagramObject containing an HTTP status code and a list of titles.
      * @throws RemoteException Throws this exception if there is any problem.
@@ -463,14 +441,11 @@ public class MediaHandlerServer extends UnicastRemoteObject
     @Override
     public DatagramObject getFilesByTitle(String title,
                                           DatagramCertificate certificate)
-            throws RemoteException
-    {
+            throws RemoteException {
         ArrayList<DataFile> coincidences = new ArrayList<>();
 
-        for(DataFile file : files)
-        {
-            if(file.getTitle().contains(title))
-            {
+        for (DataFile file : files) {
+            if (file.getTitle().contains(title)) {
                 coincidences.add(file);
             }
         }
@@ -503,10 +478,8 @@ public class MediaHandlerServer extends UnicastRemoteObject
      */
     private DataFile getExactFile(String title, String owner) {
 
-        for(DataFile file : files)
-        {
-            if(file.getTitle().equals(title) && file.getOwner().equals(owner))
-            {
+        for (DataFile file : files) {
+            if (file.getTitle().equals(title) && file.getOwner().equals(owner)) {
                 return file;
             }
         }
@@ -515,9 +488,10 @@ public class MediaHandlerServer extends UnicastRemoteObject
 
     /**
      * Adds a new logical file in the server.
+     *
      * @param information A MediaPackage structure that stores all the information required
-     * for a file transfer.
-     * @param owner The owner of the file.
+     *                    for a file transfer.
+     * @param owner       The owner of the file.
      */
     private void addDataFile(MediaPackage information, String owner) {
         String filePath = MEDIA_PATH + generateFileName(information.getTitle(), owner);
