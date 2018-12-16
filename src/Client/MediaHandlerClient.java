@@ -12,7 +12,6 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
-// TODO Make this class a singleton, which implements an interface
 // TODO Pass all the methods to an interface, and implement it
 // TODO Make the buffered reader global
 public class MediaHandlerClient {
@@ -21,7 +20,8 @@ public class MediaHandlerClient {
             "user.home";
 
     // region Media Handler main commands
-
+    // TODO Show list to delete
+    // TODO Allow empty string when editing
     /**
      * Handles the upload command, which uploads a file from the server using
      * the passed provided information.
