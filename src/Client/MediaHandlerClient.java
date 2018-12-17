@@ -1,27 +1,145 @@
 package Client;
 
-import Logic.DatagramCertificate;
+import Logic.*;
 import Server.MediaHandler;
-import Logic.MediaPackage;
-import Logic.DataFile;
-import Logic.DatagramObject;
 import Utilities.MediaUtilities;
 
 import javax.swing.*;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringTokenizer;
 
-// TODO Pass all the methods to an interface, and implement it
-// TODO Make the buffered reader global
+// TODO Show list to delete
 public class MediaHandlerClient {
 
+    private Boolean running = true;
     private static final String DEFAULT_DIRECTORY =
             "user.home";
 
+    private MediaHandler mediaHandler;
+    private MediaCallback callback;
+    private DatagramCertificate certificate;
+
+    private static BufferedReader br;
+
+    MediaHandlerClient(MediaHandler mediaHandler)
+    {
+        br = new BufferedReader(new InputStreamReader(System.in));
+        this.mediaHandler = mediaHandler;
+    }
+
+    // region Functional methods
+
+    /**
+     * Handles the execution of the client from the console.
+     */
+    void run()
+    {
+        // Log in
+        while (true) {
+            try {
+                System.out.println("Type your user name:");
+                String userName = br.readLine();
+                System.out.println("Type your password:");
+                String userPass = br.readLine();
+                User user = new User(userName, userPass);
+
+                DatagramObject status = mediaHandler.login(user);
+
+                if (status.getStatusCode() == 200) {
+                    System.out.println("Login successful.");
+                    certificate = (DatagramCertificate) status.getContent();
+                    callback = new MediaCallbackClient();
+                    break;
+                } else {
+                    System.out.println("Wrong username or password. Try again.");
+                }
+            } catch (IOException e) {
+                System.out.println("Could not log in the server.");
+            }
+        }
+
+        // Read and handle the commands
+        System.out.println("Client ready.");
+        while (running) {
+            try {
+                handleCommand(br.readLine());
+            } catch (IOException e) {
+                System.out.println("Error while trying to read commands.");;
+                break;
+            }
+        }
+    }
+
+    /**
+     * Handles the command called by the user.
+     *
+     * @param commandLine The text line containing the command.
+     */
+    private void handleCommand(String commandLine) throws IOException {
+
+        StringTokenizer tokenizer = new StringTokenizer(commandLine, " ");
+        String command = tokenizer.nextToken();
+
+        switch (command) {
+            case "upload":
+                upload(
+                        mediaHandler,
+                        certificate);
+                break;
+
+            case "download":
+                download(
+                        mediaHandler,
+                        certificate);
+                break;
+
+            case "edit":
+                edit(
+                        mediaHandler,
+                        certificate);
+                break;
+
+            case "delete":
+                delete(
+                        mediaHandler,
+                        certificate);
+                break;
+
+            case "subscribe":
+                subscribe(
+                        mediaHandler,
+                        callback,
+                        certificate);
+                break;
+
+            case "unsubscribe":
+                unsubscribe(
+                        mediaHandler,
+                        certificate);
+                break;
+
+            case "get":
+                get(
+                        mediaHandler,
+                        certificate);
+                break;
+
+            case "exit":
+                running = false;
+                break;
+
+            default:
+                System.out.println("Unrecognized command: " + commandLine);
+                break;
+        }
+    }
+
+    // endregion
+
     // region Media Handler main commands
-    // TODO Show list to delete
-    // TODO Allow empty string when editing
+
     /**
      * Handles the upload command, which uploads a file from the server using
      * the passed provided information.
@@ -30,11 +148,9 @@ public class MediaHandlerClient {
      * @param certificate  The user certificate to validate the operation.
      * @throws IOException Throws this exception if any critical error happens.
      */
-    public static void upload(MediaHandler mediaHandler,
+    private static void upload(MediaHandler mediaHandler,
                               DatagramCertificate certificate)
             throws IOException {
-
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 
         // Set the file properties
         // TODO Give to choice topic by numeric inputs
@@ -118,11 +234,9 @@ public class MediaHandlerClient {
      * @param certificate  The user certificate to validate the operation.
      * @throws IOException Throws this exception if any critical error happens.
      */
-    public static void download(MediaHandler mediaHandler,
+    private static void download(MediaHandler mediaHandler,
                                 DatagramCertificate certificate)
             throws IOException {
-
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 
         // Download the file with the title from the server
         System.out.println("Type the title of the file.");
@@ -137,40 +251,46 @@ public class MediaHandlerClient {
             printStatusMessage(result,
                     "File not found in the server.");
             return;
-        }
-        else if(result.getStatusCode() == 500)
-        {
+        } else if (result.getStatusCode() == 500) {
             printStatusMessage(result,
                     "Physical file not found in the server.");
             return;
         }
 
         // Get the list of files
-        ArrayList<DataFile> files = (ArrayList<DataFile>)result.getContent();
+        ArrayList<DataFile> files = (ArrayList<DataFile>) result.getContent();
 
         String owner;
 
         // List contains only one title
-        if(files.size() == 1)
-        {
+        if (files.size() == 1) {
             owner = files.get(0).getOwner();
         }
         // List contains multiple titles, choose by owner
-        else{
+        else {
             int ownerIndex = 1;
-            System.out.println("Multiple files found with the same name." +
+            System.out.println("Multiple files found with the same name. " +
                     "Choose from which used you want to download.");
-            for(DataFile file : files)
-            {
+            for (DataFile file : files) {
                 System.out.println(
                         ownerIndex + ".-" +
-                        file.getTitle() +", by " + file.getOwner());
-                ownerIndex+=1;
+                                file.getTitle() + ", by " + file.getOwner());
+                ownerIndex += 1;
             }
-            // Get the owner, corresponding to the selected index by the user
-            owner = files.get(Integer.valueOf(br.readLine()) - 1).getOwner();
+            // Get the title and owner, corresponding to the selected index by the user
+            int fileIndex = Integer.valueOf(br.readLine()) - 1;
+            owner = files.get(fileIndex).getOwner();
+            title = files.get(fileIndex).getTitle();
         }
+        // Send the request and get the result
         result = mediaHandler.download(title, owner, certificate);
+
+        // Control server errors
+        if(result.getStatusCode() >= 500)
+        {
+            printStatusMessage(result, (String) result.getContent());
+            return;
+        }
 
         // Open a file explorer and set its default directory
         String path;
@@ -191,8 +311,12 @@ public class MediaHandlerClient {
         try {
             out = new BufferedOutputStream(new FileOutputStream(path));
             out.write((byte[]) result.getContent());
-        } finally {
-            if (out != null) out.close();
+            out.close();
+        }
+        catch (Exception e)
+        {
+            System.out.println("Exception while writing downloaded file.");
+            e.printStackTrace();
         }
 
         printStatusMessage(result,
@@ -207,11 +331,9 @@ public class MediaHandlerClient {
      * @param certificate  The user certificate to validate the operation.
      * @throws IOException Throws this exception if any critical error happens.
      */
-    public static void edit(MediaHandler mediaHandler,
+    private static void edit(MediaHandler mediaHandler,
                             DatagramCertificate certificate)
             throws IOException {
-
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 
         // Get target file
         System.out.println("Type the title of the file to edit.");
@@ -231,13 +353,28 @@ public class MediaHandlerClient {
         }
 
         // Get file properties
+        String title;
+        DataFile.Topic topic;
+        String description;
         System.out.println("Type the new title for the file. Leave empty to not change it.");
-        String title = br.readLine();
-        System.out.println("Type a topic for the file. Leave empty to not change it.");
-        DataFile.Topic topic = solveTopic(br.readLine());
+        try {
+            title = br.readLine();
+        } catch (Exception e) {
+            title = "";
+        }
+        System.out.println("Choose a topic for the file. Leave empty to not change it.");
+        printTopics();
+        try {
+            topic = DataFile.Topic.values()[Integer.valueOf(br.readLine()) + 1];
+        } catch (Exception e) {
+            topic = DataFile.Topic.Undefined;
+        }
         System.out.println("Type a description for the file. Leave empty to not change it.");
-        String description = br.readLine();
-
+        try {
+            description = br.readLine();
+        } catch (Exception e) {
+            description = "";
+        }
         MediaPackage information = new MediaPackage(
                 title,
                 topic,
@@ -254,9 +391,7 @@ public class MediaHandlerClient {
         if (result.getStatusCode() >= 200 && result.getStatusCode() < 300) {
             printStatusMessage(result,
                     "File with with title [" + targetTitle + "] edited successfully");
-        }
-        else
-        {
+        } else {
             printStatusMessage(result,
                     (String) result.getContent());
         }
@@ -270,11 +405,9 @@ public class MediaHandlerClient {
      * @param certificate  The user certificate to validate the operation.
      * @throws IOException Throws this exception if any critical error happens.
      */
-    public static void delete(MediaHandler mediaHandler,
+    private static void delete(MediaHandler mediaHandler,
                               DatagramCertificate certificate)
             throws IOException {
-
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 
         // Get target file
         System.out.println("Type the title of the file to delete.");
@@ -307,12 +440,10 @@ public class MediaHandlerClient {
      * @param certificate   The user certificate to validate the operation.
      * @throws IOException Throws this exception if any critical error happens.
      */
-    public static void subscribe(MediaHandler mediaHandler,
+    private static void subscribe(MediaHandler mediaHandler,
                                  MediaCallback mediaCallback,
                                  DatagramCertificate certificate)
             throws IOException {
-
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 
         // Read and parse the topic
         System.out.println("Type the topic you want to subscribe.");
@@ -341,11 +472,9 @@ public class MediaHandlerClient {
      * @param certificate  The user certificate to validate the operation.
      * @throws IOException Throws this exception if any critical error happens.
      */
-    public static void unsubscribe(MediaHandler mediaHandler,
+    private static void unsubscribe(MediaHandler mediaHandler,
                                    DatagramCertificate certificate)
             throws IOException {
-
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 
         // Read and parse the topic
         System.out.println("Type the topic you want to unsubscribe.");
@@ -370,8 +499,6 @@ public class MediaHandlerClient {
 
     // region Media Handler queries
 
-    // TODO Handle string before parsing to int to avoid errors
-
     /**
      * Handles the get command, which gets lists of titles from the server using the
      * information provided by the user as filter.
@@ -380,11 +507,9 @@ public class MediaHandlerClient {
      * @param certificate  The user certificate to validate the operation.
      * @throws IOException Throws this exception if any critical error happens.
      */
-    public static void get(MediaHandler mediaHandler,
+    private static void get(MediaHandler mediaHandler,
                            DatagramCertificate certificate)
             throws IOException {
-
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 
         // Get search mode
         System.out.println("Choose a search mode:");
@@ -392,18 +517,14 @@ public class MediaHandlerClient {
         System.out.println("2. Topic");
         System.out.println("3. Text");
         int mode;
-        while(true)
-        {
-            try{
-                mode  = Integer.valueOf(br.readLine());
+        while (true) {
+            try {
+                mode = Integer.valueOf(br.readLine());
 
-                if(mode >= 1 && mode <= 3)
-                {
+                if (mode >= 1 && mode <= 3) {
                     break;
                 }
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 System.out.println("Not a valid number. " +
                         "Choose again a value between 1 and 3 (included):");
             }
@@ -514,6 +635,17 @@ public class MediaHandlerClient {
         }
 
         return topicValue;
+    }
+
+    /**
+     * Prints the list of topics.
+     */
+    private static void printTopics() {
+        int index = 1;
+        for (DataFile.Topic topic : DataFile.Topic.values()) {
+            System.out.println(index + ". " + topic);
+            index += 1;
+        }
     }
 
     // endregion
