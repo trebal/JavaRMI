@@ -1,5 +1,6 @@
 package Client;
 
+import GUI.GUIMain;
 import Logic.DatagramCertificate;
 import Server.MediaHandler;
 import Logic.DatagramObject;
@@ -34,6 +35,8 @@ public class MediaClientLauncher {
             System.out.println("Exception in Client: " + e);
             throw new RemoteException();
         }
+
+        GUIMain instance = new GUIMain();
 
         // Create a buffered reader to read commands from the console
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
