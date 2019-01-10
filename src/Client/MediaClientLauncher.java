@@ -36,7 +36,7 @@ public class MediaClientLauncher {
             throw new RemoteException();
         }
 
-        GUIMain instance = new GUIMain();
+        //GUIMain instance = new GUIMain();
 
         // Create a buffered reader to read commands from the console
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
