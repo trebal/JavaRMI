@@ -1,5 +1,6 @@
 package Server;
 
+import Logic.DataFile;
 import Logic.DatagramObject;
 
 import java.io.*;
@@ -46,7 +47,7 @@ public class MediaServerLauncher {
         // Try to join the web service
         if(WebServiceHandler.testWebService()) {
             WebServiceHandler.joinWebService();
-            WebServiceHandler.postContent();
+            //WebServiceHandler.postContent();
         }
         else{
             System.out.println("Cannot connect to the web service.");
@@ -99,7 +100,32 @@ public class MediaServerLauncher {
                         + " " + response.getContent());
 
             case "exit":
+                // TODO Execute a DELETE server in the web service
                 running = false;
+                break;
+
+            case "post":
+                DataFile PostDatafile = new DataFile(
+                        "Edge of tomorrow",
+                        DataFile.Topic.Action,
+                        "The best movie ever dude.",
+                        "GOD",
+                        "");
+                WebServiceHandler.postContent(PostDatafile);
+                break;
+
+            case "get":
+                WebServiceHandler.getServerList();
+                break;
+
+            case "delete":
+                DataFile deleteDatafile = new DataFile(
+                        "Edge of tomorrow",
+                        DataFile.Topic.Action,
+                        "The best movie ever dude.",
+                        "GOD",
+                        "");
+                WebServiceHandler.deleteContent(deleteDatafile);
                 break;
 
             default:
@@ -168,4 +194,14 @@ public class MediaServerLauncher {
     }
 
     // endregion
+
+    public static String getAddress()
+    {
+        return address;
+    }
+
+    public static int getPort()
+    {
+        return port;
+    }
 }

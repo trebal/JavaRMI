@@ -11,9 +11,11 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 
+// TODO Change the expected status codes
 public class WebServiceHandler {
 
     private static final String WS_URL = "http://localhost:8080/WebServiceWeb/rest/service";
+    private static int serverId = -1;
 
     public static boolean testWebService() {
 
@@ -36,7 +38,7 @@ public class WebServiceHandler {
             BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
             String output;
             while ((output = br.readLine()) != null) {
-                System.out.println("\nServer response: " + output);
+                System.out.println("Server response: " + output);
             }
 
             // Close connection
@@ -52,6 +54,36 @@ public class WebServiceHandler {
         return status;
     }
 
+    public static void getServerList() {
+        try {
+            // Connect to the URL
+            URL url = new URL(WS_URL + "/sget");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setDoOutput(true);
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Accept", MediaType.TEXT_PLAIN);
+
+            // Expect 200
+            if (conn.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                throw new RuntimeException("Failed: HTTP error code: " + conn.getResponseCode());
+            }
+
+            // Read server output, if any
+            BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            String output;
+            while ((output = br.readLine()) != null) {
+                System.out.println("Server response: " + output);
+            }
+
+            // Close connection
+            conn.disconnect();
+        } catch (MalformedURLException e) {
+            System.out.println("Malformed URL.");
+        } catch (IOException e) {
+            System.out.println("IO Exception. Web service may be down.");
+        }
+    }
+
     public static void joinWebService() {
         try {
             // Connect to the URL
@@ -62,8 +94,51 @@ public class WebServiceHandler {
             conn.setRequestProperty("Accept", MediaType.TEXT_PLAIN);
             conn.setRequestProperty("Content-Type", MediaType.APPLICATION_JSON);
 
+            // TODO Create a class to pass ONLY the ip and the port
             // Send the DataFile in JSON format
-            String input = "{\"id\":1,\"ip\":\"127.0.0.1\",\"port\":8080}";
+            String input = "{\"id\":-1,\"ip\":\"" + MediaServerLauncher.getAddress() + "\",\"port\":" + MediaServerLauncher.getPort() + "}";
+
+            // Open stream
+            OutputStream os = conn.getOutputStream();
+            os.write(input.getBytes());
+            os.flush();
+
+            // Expect 201
+            if (conn.getResponseCode() != HttpURLConnection.HTTP_CREATED) {
+                throw new RuntimeException("Failed: HTTP error code: " + conn.getResponseCode());
+            }
+
+            BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            String message = br.readLine();
+            serverId = Integer.valueOf(br.readLine());
+
+            System.out.println("Server response: " + message);
+            System.out.println("Designated id for this server: " + serverId);
+
+            // Close connection
+            conn.disconnect();
+        } catch (MalformedURLException e) {
+            System.out.println("Malformed URL.");
+            e.printStackTrace();
+        } catch (IOException e) {
+            System.out.println("IO Exception.");
+            e.printStackTrace();
+        }
+    }
+
+    public static void postContent(DataFile dataFile) {
+        try {
+            // Connect to the URL
+            URL url = new URL(WS_URL + "/fpost");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setDoOutput(true);
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Accept", MediaType.TEXT_PLAIN);
+            conn.setRequestProperty("Content-Type", MediaType.APPLICATION_JSON);
+
+            // Send the DataFile in JSON format
+            // TODO Pass the actual server id
+            String input = dataFile.toJson(serverId);
 
             // Open stream
             OutputStream os = conn.getOutputStream();
@@ -79,7 +154,7 @@ public class WebServiceHandler {
             BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
             String output;
             while ((output = br.readLine()) != null) {
-                System.out.println("\nServer response: " + output);
+                System.out.println("Server response: " + output);
             }
 
             // Close connection
@@ -93,27 +168,19 @@ public class WebServiceHandler {
         }
     }
 
-    public static void postContent() {
+    public static void deleteContent(DataFile dataFile) {
         try {
             // Connect to the URL
-            URL url = new URL(WS_URL + "/fpost");
+            String filteredTitle = dataFile.getTitle().replace(" ", "%20");
+            String filteredOwner = dataFile.getOwner().replace(" ", "%20");
+            URL url = new URL(WS_URL + "/fdelete/" + filteredTitle + "/" + filteredOwner);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setDoOutput(true);
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Accept", MediaType.TEXT_PLAIN);
             conn.setRequestProperty("Content-Type", MediaType.APPLICATION_JSON);
 
-            // TODO Pass the file by parameter and allow no the path parameter
-            // Send the DataFile in JSON format
-            DataFile datafile = new DataFile("Edge of tomorrow", DataFile.Topic.Action, "The best movie ever dude.", "GOD", "");
-            // TODO Pass the actual server id
-            String input = datafile.toJson(1);
-            System.out.println(input);
-
-            // Open stream
-            OutputStream os = conn.getOutputStream();
-            os.write(input.getBytes());
-            os.flush();
+            System.out.println(url.getPath());
 
             // Expect 201
             if (conn.getResponseCode() != HttpURLConnection.HTTP_CREATED) {
@@ -124,7 +191,7 @@ public class WebServiceHandler {
             BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
             String output;
             while ((output = br.readLine()) != null) {
-                System.out.println("\nServer response: " + output);
+                System.out.println("Server response: " + output);
             }
 
             // Close connection
