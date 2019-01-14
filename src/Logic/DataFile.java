@@ -85,4 +85,14 @@ public class DataFile implements Serializable {
 
     // endregion
 
+    public String toJson(int serverId)
+    {
+        return "{"
+                + "\"serverId\":\"" + serverId + "\","
+                + "\"title\":\"" + title + "\","
+                + "\"owner\":\"" + owner + "\","
+                + "\"topic\":\"" + topic + "\","
+                + "\"description\":\"" + description
+                + "\"}";
+    }
 }

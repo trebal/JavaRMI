@@ -2,17 +2,11 @@ package Server;
 
 import Logic.DatagramObject;
 
-import javax.ws.rs.core.MediaType;
-import java.awt.*;
 import java.io.*;
 import java.rmi.*;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.StringTokenizer;
-
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
 
 public class MediaServerLauncher {
 
@@ -47,15 +41,20 @@ public class MediaServerLauncher {
             System.out.println("Exception catch." + e);
         }
 
+
+
         // Try to join the web service
         if(WebServiceHandler.testWebService()) {
             WebServiceHandler.joinWebService();
+            WebServiceHandler.postContent();
         }
         else{
             System.out.println("Cannot connect to the web service.");
         }
 
-        // TODO Move the command handler somewhere else
+
+
+        // TODO Move the command handling logic into a class
         // Create a buffered reader to read commands from the console
         BufferedReader br = new BufferedReader(
                 new InputStreamReader(System.in));
