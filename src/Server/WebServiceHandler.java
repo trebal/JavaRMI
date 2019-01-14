@@ -137,7 +137,6 @@ public class WebServiceHandler {
             conn.setRequestProperty("Content-Type", MediaType.APPLICATION_JSON);
 
             // Send the DataFile in JSON format
-            // TODO Pass the actual server id
             String input = dataFile.toJson(serverId);
 
             // Open stream
@@ -171,19 +170,27 @@ public class WebServiceHandler {
     public static void deleteContent(DataFile dataFile) {
         try {
             // Connect to the URL
-            String filteredTitle = dataFile.getTitle().replace(" ", "%20");
-            String filteredOwner = dataFile.getOwner().replace(" ", "%20");
-            URL url = new URL(WS_URL + "/fdelete/" + filteredTitle + "/" + filteredOwner);
+            URL url = new URL(WS_URL + "/fdelete");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setDoOutput(true);
-            conn.setRequestMethod("POST");
+            conn.setRequestMethod("DELETE");
             conn.setRequestProperty("Accept", MediaType.TEXT_PLAIN);
             conn.setRequestProperty("Content-Type", MediaType.APPLICATION_JSON);
 
-            System.out.println(url.getPath());
+            // Send the DataFile in JSON format
+            String input = dataFile.toJson(serverId);
 
-            // Expect 201
-            if (conn.getResponseCode() != HttpURLConnection.HTTP_CREATED) {
+            // Open stream
+            OutputStream os = conn.getOutputStream();
+            os.write(input.getBytes());
+            os.flush();
+
+            // Expect 204
+            if(conn.getResponseCode() == HttpURLConnection.HTTP_NOT_FOUND)
+            {
+                throw new RuntimeException("File could not be found." + conn.getResponseCode());
+            }
+            else if (conn.getResponseCode() != HttpURLConnection.HTTP_OK) {
                 throw new RuntimeException("Failed: HTTP error code: " + conn.getResponseCode());
             }
 
