@@ -2,11 +2,17 @@ package Server;
 
 import Logic.DatagramObject;
 
+import javax.ws.rs.core.MediaType;
+import java.awt.*;
 import java.io.*;
 import java.rmi.*;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.StringTokenizer;
+
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 
 public class MediaServerLauncher {
 
@@ -31,7 +37,7 @@ public class MediaServerLauncher {
             startRegistry(port);
 
             // Register the object
-            String registryURL = getRegistryURL(address,port);
+            String registryURL = getRegistryURL(address, port);
             Naming.rebind(registryURL, exportedObj);
 
             System.out.println("Server ready.");
@@ -39,6 +45,14 @@ public class MediaServerLauncher {
         // The above call will throw an exception if the registry does not already exist
         catch (RemoteException e) {
             System.out.println("Exception catch." + e);
+        }
+
+        // Try to join the web service
+        if(WebServiceHandler.testWebService()) {
+            WebServiceHandler.joinWebService();
+        }
+        else{
+            System.out.println("Cannot connect to the web service.");
         }
 
         // TODO Move the command handler somewhere else
@@ -72,18 +86,18 @@ public class MediaServerLauncher {
                 String nodeAddress = tokenizer.nextToken();
                 int nodePort = Integer.valueOf(tokenizer.nextToken());
 
-                String registryURL = getRegistryURL(nodeAddress,nodePort);
+                String registryURL = getRegistryURL(nodeAddress, nodePort);
                 NetworkNode node = (NetworkNode) Naming.lookup(registryURL);
                 debugNode = (NetworkNode) node.join(exportedObj).getContent();
                 System.out.println("Connected");
                 break;
 
-                // TODO Either finish or delete this method
+            // TODO Either finish or delete this method
             case "ping":
                 System.out.println("Pinging...");
                 DatagramObject response = debugNode.ping();
                 System.out.println(response.getStatusCode()
-                + " " + response.getContent());
+                        + " " + response.getContent());
 
             case "exit":
                 running = false;

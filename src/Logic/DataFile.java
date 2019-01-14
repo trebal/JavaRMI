@@ -31,7 +31,7 @@ public class DataFile implements Serializable {
      */
     private String path;
 
-    // TODO Allow expansion by file reading
+    // TODO Use dictionary instead
     public enum Topic {
         Action,
         Adventure,

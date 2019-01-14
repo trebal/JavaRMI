@@ -17,5 +17,6 @@
         <SOURCES />
       </library>
     </orderEntry>
+    <orderEntry type="library" name="javax.ws.rs-api-2.0.rev.A" level="project" />
   </component>
 </module>
