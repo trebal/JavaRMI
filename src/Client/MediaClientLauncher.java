@@ -61,20 +61,42 @@ public class MediaClientLauncher {
             }
         }
 
-        // Read and handle the commands
-        System.out.println("Client ready.");
-        while (running) {
-            try {
-                handleCommand(br.readLine());
-            } catch (IOException e) {
-                e.printStackTrace();
-                break;
+        // Get and handle the command
+        int command;
+        while(running)
+        {
+            System.out.println("Choose a command:");
+            System.out.println("1. Search files");
+            System.out.println("2. Upload a file");
+            System.out.println("3. Download a file");
+            System.out.println("4. Edit a file");
+            System.out.println("5. Delete a file");
+            System.out.println("6. Subscribe to a topic");
+            System.out.println("7. Unsubscribe from a topic");
+            System.out.println("8. Exit");
+
+            // Try to parse the command to an integer
+            try{
+                command  = Integer.valueOf(br.readLine());
+
+                if(command >= 1 && command <= 8)
+                {
+                    handleCommand(command);
+                }
+                else{
+                    throw new IllegalArgumentException();
+                }
+            }
+            // Throw exception if the command is not a number or it is out of range
+            catch (Exception e)
+            {
+                System.out.println("Not a valid command number. " +
+                        "Choose again a value between 1 and 8 (both included):");
             }
         }
 
-        // Close buffer
+        // Close buffer and finish client
         br.close();
-
         System.out.println("Closing client.");
         System.exit(0);
     }
@@ -82,64 +104,59 @@ public class MediaClientLauncher {
     /**
      * Handles the command called by the user.
      *
-     * @param commandLine The text line containing the command.
+     * @param command The integer value corresponding to the command.
      */
-    private static void handleCommand(String commandLine) throws IOException {
-
-        StringTokenizer tokenizer = new StringTokenizer(commandLine, " ");
-        String command = tokenizer.nextToken();
+    private static void handleCommand(int command) throws IOException {
 
         switch (command) {
-            case "upload":
+            case 1:
+                MediaHandlerClient.get(
+                        mediaHandler,
+                        certificate);
+                break;
+            case 2:
                 MediaHandlerClient.upload(
                         mediaHandler,
                         certificate);
                 break;
 
-            case "download":
+            case 3:
                 MediaHandlerClient.download(
                         mediaHandler,
                         certificate);
                 break;
 
-            case "edit":
+            case 4:
                 MediaHandlerClient.edit(
                         mediaHandler,
                         certificate);
                 break;
 
-            case "delete":
+            case 5:
                 MediaHandlerClient.delete(
                         mediaHandler,
                         certificate);
                 break;
 
-            case "subscribe":
+            case 6:
                 MediaHandlerClient.subscribe(
                         mediaHandler,
                         mediaCallback,
                         certificate);
                 break;
 
-            case "unsubscribe":
+            case 7:
                 MediaHandlerClient.unsubscribe(
                         mediaHandler,
                         certificate);
                 break;
 
-            case "get":
-                MediaHandlerClient.get(
-                        mediaHandler,
-                        certificate);
-                break;
-
-            case "exit":
+            case 8:
                 running = false;
                 break;
 
             default:
-                System.out.println("Unrecognized command: " + commandLine);
-                break;
+                throw new IllegalArgumentException("Non allowed command.");
         }
     }
 

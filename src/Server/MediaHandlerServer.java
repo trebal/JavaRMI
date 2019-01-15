@@ -37,7 +37,7 @@ public class MediaHandlerServer extends UnicastRemoteObject
                 "TestingDownload",
                 DataFile.Topic.Action,
                 "This is a file just for testing downloading.",
-                "Admin",
+                "admin",
                 MEDIA_PATH + "Admin#TestingDownload")
         );
 
@@ -495,6 +495,23 @@ public class MediaHandlerServer extends UnicastRemoteObject
 
         for (DataFile file : files) {
             if (file.getTitle().contains(title)) {
+                coincidences.add(file);
+            }
+        }
+
+        return (!coincidences.isEmpty()) ?
+                new DatagramObject(200, coincidences) :
+                new DatagramObject(404);
+    }
+
+    @Override
+    public DatagramObject getFilesByOwner(String owner,
+                                          DatagramCertificate certificate)
+        throws RemoteException{
+        ArrayList<DataFile> coincidences = new ArrayList<>();
+
+        for (DataFile file : files) {
+            if (file.getOwner().equals(owner)) {
                 coincidences.add(file);
             }
         }

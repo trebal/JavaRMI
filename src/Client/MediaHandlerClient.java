@@ -168,7 +168,14 @@ public class MediaHandlerClient {
                 ownerIndex+=1;
             }
             // Get the owner, corresponding to the selected index by the user
-            owner = files.get(Integer.valueOf(br.readLine()) - 1).getOwner();
+            try {
+                owner = files.get(Integer.valueOf(br.readLine()) - 1).getOwner();
+            }
+            catch (Exception e)
+            {
+                System.out.println("Owner index not correct. Operation cancelled.");
+                return;
+            }
         }
         result = mediaHandler.download(title, owner, certificate);
 
@@ -213,8 +220,31 @@ public class MediaHandlerClient {
 
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 
+        // Get owner files
+        DatagramObject queryResult = mediaHandler.getFilesByOwner(certificate.getUsername(), certificate);
+
+        // Not a single file found of this user
+        if(queryResult.getStatusCode() == 404)
+        {
+            System.out.println("You do not own any file and so you cannot edit anything. " +
+                    "Operation cancelled.");
+            return;
+        }
+        // List files
+        else{
+            System.out.println("You can edit the following files.");
+            ArrayList<DataFile> foundFiles = (ArrayList<DataFile>) queryResult.getContent();
+            int fileIndex = 1;
+            for(DataFile file : foundFiles)
+            {
+                System.out.println(
+                        fileIndex + ".-" + file.getTitle());
+                fileIndex+=1;
+            }
+        }
+
         // Get target file
-        System.out.println("Type the title of the file to edit.");
+        System.out.println("Choose a file to edit.");
         String targetTitle = br.readLine();
 
         // Check if the file exists
