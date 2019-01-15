@@ -139,6 +139,25 @@ public class MediaHandlerServer extends UnicastRemoteObject
             }
         }
 
+
+
+        // Notify the WS
+        try{
+            WebServiceHandler.postContent(
+                    new DataFile(
+                            information.getTitle(),
+                            information.getTopic(),
+                            information.getDescription(),
+                            certificate.getUsername(),
+                            ""));
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+
+
+
         return new DatagramObject(statusCode);
     }
 
@@ -222,6 +241,21 @@ public class MediaHandlerServer extends UnicastRemoteObject
                 information.getTitle(),
                 certificate.getUsername()));
         if (editFile.renameTo(newFile)) {
+            // Notify the WS
+            try {
+                WebServiceHandler.putContent(
+                        title,
+                        certificate.getUsername(),
+                        new DataFile(
+                                information.getTitle(),
+                                information.getTopic(),
+                                information.getDescription(),
+                                certificate.getUsername(),
+                                ""));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
             // Success, No content
             return new DatagramObject(204);
         } else {
@@ -263,6 +297,21 @@ public class MediaHandlerServer extends UnicastRemoteObject
         // Remove physical file
         File rmFile = new File(file.getPath());
         if (rmFile.delete()) {
+            // Notify the WS
+            try{
+                WebServiceHandler.deleteContent(
+                        new DataFile(
+                                file.getTitle(),
+                                file.getTopic(),
+                                file.getDescription(),
+                                certificate.getUsername(),
+                                ""));
+            }
+            catch (Exception e)
+            {
+                e.printStackTrace();
+            }
+
             // Success, No content
             return new DatagramObject(204);
         } else {

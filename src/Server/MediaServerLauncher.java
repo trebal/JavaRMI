@@ -92,45 +92,16 @@ public class MediaServerLauncher {
                     System.out.println("Connected");
                     break;
 
+                case "get1":
+                    WebServiceHandler.getContent("Title1", "1");
+                    break;
+                case "get2":
+                    WebServiceHandler.getContent("Title2", "1");
+                    break;
+
                 case "exit":
                     // TODO Execute a DELETE server in the web service
                     running = false;
-                    break;
-
-                case "post":
-                    DataFile PostDatafile = new DataFile(
-                            "Edge of tomorrow",
-                            DataFile.Topic.Action,
-                            "The best movie ever dude.",
-                            "GOD",
-                            "");
-                    WebServiceHandler.postContent(PostDatafile);
-                    break;
-
-                case "get":
-                    WebServiceHandler.getServerList();
-                    break;
-
-                case "delete":
-                    DataFile deleteDatafile = new DataFile(
-                            "Edge of tomorrow",
-                            DataFile.Topic.Action,
-                            "The best movie ever dude.",
-                            "GOD",
-                            "");
-                    WebServiceHandler.deleteContent(deleteDatafile);
-
-                    break;
-
-                case "put":
-                    DataFile putDatafile = new DataFile(
-                            "Edge of today",
-                            DataFile.Topic.Action,
-                            "The worst movie ever dude.",
-                            "GOD",
-                            "");
-                    WebServiceHandler.putContent("Edge of tomorrow", "GOD", putDatafile);
-
                     break;
 
                 default:

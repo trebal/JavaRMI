@@ -142,6 +142,45 @@ public class WebServiceHandler {
     // region File utilities
 
     /**
+     * Gets a DataFile from the WS.
+     */
+    public static void getContent(String title, String owner) {
+        try {
+            // Connect to the URL
+            URL url = new URL(WS_URL + "/fget/" + title + "/" + owner);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setDoOutput(true);
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Accept", MediaType.APPLICATION_JSON);
+
+            // Expect 404 if the file does not exist
+            if (conn.getResponseCode() == HttpURLConnection.HTTP_NOT_FOUND) {
+                throw new RuntimeException("File exists already." + conn.getResponseCode());
+            }
+            // Expect 200 otherwise
+            else if (conn.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                throw new RuntimeException("Failed: HTTP error code: " + conn.getResponseCode());
+            }
+
+            // Read server output, if any
+            BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            String output;
+            while ((output = br.readLine()) != null) {
+                System.out.println("Server response: " + output);
+            }
+
+            // Close connection
+            conn.disconnect();
+        } catch (MalformedURLException e) {
+            System.out.println("Malformed URL.");
+            e.printStackTrace();
+        } catch (IOException e) {
+            System.out.println("IO Exception.");
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * Posts a DataFile into the WS.
      * @param dataFile The new DataFile.
      */
@@ -251,7 +290,7 @@ public class WebServiceHandler {
             URL url = new URL(WS_URL + "/fput");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setDoOutput(true);
-            conn.setRequestMethod("DELETE");
+            conn.setRequestMethod("PUT");
             conn.setRequestProperty("Accept", MediaType.TEXT_PLAIN);
             conn.setRequestProperty("Content-Type", MediaType.APPLICATION_JSON);
 
@@ -264,8 +303,6 @@ public class WebServiceHandler {
                     + "\",\"newTopic\":\"" + newDataFile.getTopic()
                     + "\",\"newDescription\":\"" + newDataFile.getDescription()
                     + "\"}";
-
-            System.out.println(input);
 
             // Open stream
             OutputStream os = conn.getOutputStream();
