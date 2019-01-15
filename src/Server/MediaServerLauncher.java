@@ -79,62 +79,70 @@ public class MediaServerLauncher {
 
         StringTokenizer tokenizer = new StringTokenizer(commandLine, " ");
         String command = tokenizer.nextToken();
+        try {
+            switch (command) {
+                case "connect":
+                    System.out.println("Connecting");
+                    String nodeAddress = tokenizer.nextToken();
+                    int nodePort = Integer.valueOf(tokenizer.nextToken());
 
-        switch (command) {
-            case "connect":
-                System.out.println("Connecting");
-                String nodeAddress = tokenizer.nextToken();
-                int nodePort = Integer.valueOf(tokenizer.nextToken());
+                    String registryURL = getRegistryURL(nodeAddress, nodePort);
+                    NetworkNode node = (NetworkNode) Naming.lookup(registryURL);
+                    debugNode = (NetworkNode) node.join(exportedObj).getContent();
+                    System.out.println("Connected");
+                    break;
 
-                String registryURL = getRegistryURL(nodeAddress, nodePort);
-                NetworkNode node = (NetworkNode) Naming.lookup(registryURL);
-                debugNode = (NetworkNode) node.join(exportedObj).getContent();
-                System.out.println("Connected");
-                break;
+                case "exit":
+                    // TODO Execute a DELETE server in the web service
+                    running = false;
+                    break;
 
-            // TODO Either finish or delete this method
-            case "ping":
-                System.out.println("Pinging...");
-                DatagramObject response = debugNode.ping();
-                System.out.println(response.getStatusCode()
-                        + " " + response.getContent());
+                case "post":
+                    DataFile PostDatafile = new DataFile(
+                            "Edge of tomorrow",
+                            DataFile.Topic.Action,
+                            "The best movie ever dude.",
+                            "GOD",
+                            "");
+                    WebServiceHandler.postContent(PostDatafile);
+                    break;
 
-            case "exit":
-                // TODO Execute a DELETE server in the web service
-                running = false;
-                break;
+                case "get":
+                    WebServiceHandler.getServerList();
+                    break;
 
-            case "post":
-                DataFile PostDatafile = new DataFile(
-                        "Edge of tomorrow",
-                        DataFile.Topic.Action,
-                        "The best movie ever dude.",
-                        "GOD",
-                        "");
-                WebServiceHandler.postContent(PostDatafile);
-                break;
+                case "delete":
+                    DataFile deleteDatafile = new DataFile(
+                            "Edge of tomorrow",
+                            DataFile.Topic.Action,
+                            "The best movie ever dude.",
+                            "GOD",
+                            "");
+                    WebServiceHandler.deleteContent(deleteDatafile);
 
-            case "get":
-                WebServiceHandler.getServerList();
-                break;
+                    break;
 
-            case "delete":
-                DataFile deleteDatafile = new DataFile(
-                        "Edge of tomorrow",
-                        DataFile.Topic.Action,
-                        "The best movie ever dude.",
-                        "GOD",
-                        "");
-                WebServiceHandler.deleteContent(deleteDatafile);
-                break;
+                case "put":
+                    DataFile putDatafile = new DataFile(
+                            "Edge of today",
+                            DataFile.Topic.Action,
+                            "The worst movie ever dude.",
+                            "GOD",
+                            "");
+                    WebServiceHandler.putContent("Edge of tomorrow", "GOD", putDatafile);
 
-            default:
-                System.out.println("Unrecognized command: " + commandLine);
-                break;
+                    break;
+
+                default:
+                    System.out.println("Unrecognized command: " + commandLine);
+                    break;
+            }
+        } catch (RuntimeException e) {
+            e.printStackTrace();
         }
     }
 
-    // region Server Utitilies
+    // region Server Utilities
 
     /**
      * Generates the URL corresponding to the RMI server entity with the
